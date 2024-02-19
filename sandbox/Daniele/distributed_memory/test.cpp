@@ -33,17 +33,24 @@ int main(int argc, char **argv){
     double *res;
 
     size_t n, m;
-    n = m = 6;
+
+    // 2^19 suitable for 5 nodes.
+    // About 400 Gb of data for each node.
+    n = m = 1 << 19;
+
     size_t starting_row, chunk_size;
     char * matrix_path = "../assets/matrix.bin";
-    //utils::read_matrix_dims(matrix_path, n, m);
 
     // Equal distribution
     //assert(n % size == 0);
-    size_t max_chunk_size = 4;
+
+    // Loading matrix rows in chunks 
+    size_t max_chunk_size = n/size;
     if(rank != (size-1))
         chunk_size = max_chunk_size;
     else
+        // For the last process, the size of the chunk 
+        // can be less than the maximum.
         chunk_size = n - (size - 1)*max_chunk_size;
 
     starting_row = chunk_size * rank;
