@@ -31,6 +31,9 @@
 *.out
 *.app
 
+# Binary files
+*.bin
+
 # Matrix Market files
 
 # Vscode files
