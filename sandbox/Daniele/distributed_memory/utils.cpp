@@ -1,6 +1,6 @@
 #include "utils.hpp"
 
-bool utils::read_matrix_from_file(const char * filename, double ** matrix_out, size_t &num_rows_out, size_t &num_cols_out)
+bool utils::read_matrix_from_file(const char * filename, double * &matrix_out, size_t &num_rows_out, size_t &num_cols_out)
 {
     double * matrix;
     size_t num_rows;
@@ -18,7 +18,7 @@ bool utils::read_matrix_from_file(const char * filename, double ** matrix_out, s
     matrix = new double[num_rows * num_cols];
     fread(matrix, sizeof(double), num_rows * num_cols, file);
 
-    *matrix_out = matrix;
+    matrix_out = matrix;
     num_rows_out = num_rows;
     num_cols_out = num_cols;
 
@@ -27,9 +27,8 @@ bool utils::read_matrix_from_file(const char * filename, double ** matrix_out, s
     return true;
 }
 
-bool utils::read_vector_from_file(const char * filename, double ** vector_out, size_t &length)
+bool utils::read_vector_from_file(const char * filename, double * &vector_out, size_t &length)
 {
-    double * vector;
 
     FILE * file = fopen(filename, "rb");
     if(file == nullptr)
@@ -39,19 +38,35 @@ bool utils::read_vector_from_file(const char * filename, double ** vector_out, s
     }
 
     fread(&length, sizeof(size_t), 1, file);
-    vector = new double[length];
-    fread(vector, sizeof(double), length, file);
-
-    *vector_out = vector;
+    vector_out = new double[length];
+    fread(vector_out, sizeof(double), length, file);
 
     fclose(file);
 
     return true;
 }
 
-bool utils::read_matrix_rows(const char * filename, double ** matrix_out, size_t starting_row_num, size_t num_rows_to_read, size_t &num_cols)
+void utils::create_vector(double * &vector_out, size_t &length, double scalar)
 {
-    double * matrix;
+
+    vector_out = new double[length];
+
+    for(size_t i = 0; i< length; i++)
+        vector_out[i] = scalar;
+}
+
+void utils::create_matrix(double * &matrix_out, size_t n, size_t m, double scalar)
+{
+
+    matrix_out = new double[n*m];
+
+    for(size_t r = 0; r<n; r++)
+        for(size_t c = 0; c<m; c++)
+            matrix_out[r*m + c] = scalar;
+}
+
+bool utils::read_matrix_rows(const char * filename, double * &matrix_out, size_t starting_row_num, size_t num_rows_to_read, size_t &num_cols)
+{
     size_t num_rows;
     FILE * file = fopen(filename, "rb");
     if(file == nullptr)
@@ -65,7 +80,7 @@ bool utils::read_matrix_rows(const char * filename, double ** matrix_out, size_t
     
     assert(starting_row_num + num_rows_to_read <= num_rows);
 
-    matrix = new double[num_rows_to_read * num_cols];
+    matrix_out = new double[num_rows_to_read * num_cols];
 
     
     size_t offset = starting_row_num * num_cols + 2; 
@@ -74,9 +89,8 @@ bool utils::read_matrix_rows(const char * filename, double ** matrix_out, size_t
         return false;
     }
 
-    fread(matrix, sizeof(double), num_rows_to_read * num_cols, file);
+    fread(matrix_out, sizeof(double), num_rows_to_read * num_cols, file);
 
-    *matrix_out = matrix;
 
     fclose(file);
 
