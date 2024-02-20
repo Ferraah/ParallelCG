@@ -1,5 +1,5 @@
-#ifndef CUDA_TEST_VEC_SUM
-#define CUDA_TEST_VEC_SUM
+#ifndef CUDA_TEST_KERNELS
+#define CUDA_TEST_KERNELS
 
 #include <cuda.h>
 #include <stdio.h>
@@ -19,11 +19,11 @@ __global__ void vec_sum_kernel(double* a, double* b, const unsigned int dim)
 }
 
 __global__ void vec_dot_kernel(
-                            const double* a, 
-                            const double* b, 
-                            const unsigned int dim, 
+                            double* a, 
+                            double* b, 
+                            unsigned int dim, 
                             double* res,
-                            const unsigned int threadsPerBlock)
+                            unsigned int threadsPerBlock)
 {
     unsigned int id = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int stride = blockDim.x * gridDim.x;
@@ -39,11 +39,9 @@ __global__ void vec_dot_kernel(
     for (unsigned int pos = id; pos < dim; pos = pos + stride)
     {   
         partial_product[threadIdx.x] += a[pos] * b[pos];
-        printf("%f\n", partial_product[threadIdx.x]);
     }
     __syncthreads();
 
-    // TODO: implement the parallel reduction in the shared memory
     // Finally, the first thread computes the reduction.
     if (threadIdx.x == 0)
     {
@@ -54,7 +52,7 @@ __global__ void vec_dot_kernel(
         }
         // And last but not least add the final sum over the block to the
         // element at index equal to the block id to the position.
-        res[blockIdx.x] = 500;
+        res[blockIdx.x] = sum;
     }
 }
 #endif // CUDA_TEST_VEC_SUM

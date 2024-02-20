@@ -1,5 +1,5 @@
 // Include (.cu) with the implementation of the kernel
-#include "vec_sum.cuh"
+#include "cuda_kernels.cuh"
 
 // Include (.hpp) used to link with the .cpp file
 #include "gpu_tests.hpp"
@@ -29,10 +29,10 @@ void vec_sum_func(double* a, double* b, unsigned int size)
     cudaFree(dev_b);
 }
 
-double vec_dot_func(const double* a, const double* b, const unsigned int size)
+double vec_dot_func(double* a, double* b, unsigned int size)
 {
-    unsigned int num_blocks = 4;
-    unsigned int threads_per_block = 256;
+    unsigned int num_blocks = 25;
+    unsigned int threads_per_block = 1024;
 
     // allocate device memory
     std::cout << "Allocating memory on the device" << std::endl;
@@ -46,22 +46,13 @@ double vec_dot_func(const double* a, const double* b, const unsigned int size)
     double* dev_res;
     cudaMalloc(&dev_res, num_blocks * sizeof(double));
 
-    for(unsigned int i = 0; i < size; i++)
-    {
-        std::cout << a[i];
-    }
-
-    for(unsigned int i = 0; i < size; i++)
-    {
-        std::cout << b[i];
-    }
-
+    std::cout << std::endl;
     // copy data to the device
     cudaMemcpy(dev_a, a, size * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemcpy(dev_b, b, size * sizeof(double), cudaMemcpyHostToDevice);
 
     std::cout << "Calling the kernel" << std::endl;
-    vec_dot_kernel<<<num_blocks, threads_per_block, threads_per_block * sizeof(double)>>>(a, b, size, res, threads_per_block);
+    vec_dot_kernel<<<num_blocks, threads_per_block, threads_per_block * sizeof(double)>>>(dev_a, dev_b, size, dev_res, threads_per_block);
     cudaDeviceSynchronize();
 
     cudaMemcpy(res, dev_res, num_blocks * sizeof(double), cudaMemcpyDeviceToHost);
@@ -71,7 +62,6 @@ double vec_dot_func(const double* a, const double* b, const unsigned int size)
 
     for(unsigned int i = 0; i < num_blocks; i++)
     {
-        std::cout << res[i] << std::endl;
         dot_product = dot_product + res[i];
     }
 
