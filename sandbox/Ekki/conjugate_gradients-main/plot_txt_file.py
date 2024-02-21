@@ -1,5 +1,6 @@
 # Script for plotting the benchmarks
 #
+# Load python: module load Python
 # Set up env: python -m pip install numpy matplotlib
 # Execute as: python3 plot_txt_file.py file_name.txt plot_output.pdf
 #
@@ -29,7 +30,7 @@ times = array[1::2].astype(float)
 # plot
 # plt.rcParams['text.usetex'] = True
 plt.plot(matrix_sizes, times, marker="+")
-plt.title("Benchmark serial")
+plt.title("Benchmark")
 plt.xlabel("Matrix size")
 plt.ylabel("time [s]")
 plt.semilogy()
