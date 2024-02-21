@@ -1,0 +1,10 @@
+
+CPU CLUSTER
+
+The cluster module is composed of 573 nodes.
+Each node has 2 AMD Rome CPUs, each with 64 cores @ 2.6 GHz for a total of 128 cores (256HT cores),
+and has 512 GB of RAM. 
+These nodes are connected to the InfiniBand network.
+
+These are traditional HPC nodes, with state-of-the-art hardware,
+and are designed to offer great performance for the majority of workloads.
