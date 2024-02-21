@@ -1,9 +1,9 @@
 // From https://docs.lxp.lu/hpc/compiling/
 
 //
-// Execute with: module load foss/2021a
+// Execute with: module load OpenMPI
 //               mpic++ -o toy_mpi toy_mpi.cpp
-//               mpirun -np 4 ./toy_mpi
+//               srun -n 4 ./toy_mpi          // up to 256 processes
 //
 
 #include <iostream>

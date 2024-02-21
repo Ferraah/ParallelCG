@@ -1,7 +1,7 @@
 #!/bin/bash -l
 ## This file is called `MyFirstJob_MeluXina.sh`
 #SBATCH --time=00:15:00
-#SBATCH --account=def-your-project-account
+#SBATCH --account=p200301
 #SBATCH --partition=cpu
 #SBATCH --qos=default
 #SBATCH --nodes=1
