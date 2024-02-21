@@ -9,7 +9,7 @@
 ms=(1 5 10 50 100 500 1000 5000 10000)
 
 module load intel
-# export OMP_NUM_THREADS=4 # for example
+export OMP_NUM_THREADS=8 # for example
 icpx -O2 -fopenmp src/cg_timed_omp.cpp -o cg_timed_omp
 
 echo "matrix_size   time" > cg_bench_omp.txt
