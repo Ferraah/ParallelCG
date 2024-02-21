@@ -89,7 +89,7 @@ void print_matrix(const double * matrix, size_t num_rows, size_t num_cols, FILE 
 double dot(const double * x, const double * y, size_t size)
 {
     double result = 0.0;
-    #pragma omp parallel for default(none) reduction(+:result) shared(x, y, size)
+    #pragma omp parallel for default(none) reduction(+:result) shared(x, y, size) // this might have no impact on the performance
     for(size_t i = 0; i < size; i++)
     {
         result += x[i] * y[i];
@@ -102,7 +102,7 @@ double dot(const double * x, const double * y, size_t size)
 void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 {
     // y = alpha * x + beta * y
-
+    #pragma omp parallel for default(none) shared(alpha, x, beta, y, size)
     for(size_t i = 0; i < size; i++)
     {
         y[i] = alpha * x[i] + beta * y[i];
@@ -114,7 +114,7 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols)
 {
     // y = alpha * A * x + beta * y;
-
+    #pragma omp parallel for default(none) shared(alpha, A, x, beta, y, num_rows, num_cols)
     for(size_t r = 0; r < num_rows; r++)
     {
         double y_val = 0.0;
