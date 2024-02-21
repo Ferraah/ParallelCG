@@ -2,7 +2,6 @@
 #define CG_SOLVER
 
 #include <memory>
-
 #include "strategy/CGStrategy.hpp"
 
 namespace cgcore{
@@ -11,20 +10,29 @@ namespace cgcore{
      * @brief Describes a solver for the conjugate gradient equipped with
      * a particular strategy.
     */
+    template <typename Strategy>
     class CGSolver{
 
         public:
 
-            CGSolver(std::unique_pointer<CGStrategy> _strategy):
-                strategy(std::move(_strategy))
-            {};
-        
-            void solve(/* Parameters for CG */){
-                strategy.run(/* Same params */);
+            CGSolver(){};
+
+            /**
+             * @brief Run the selected stategy.
+             * @param A Pointer to matrix
+             * @param b Pointer to rhs
+             * @param x Pointer to the vector solution 
+             * @param size size of the problem
+             * @param max_iters Max iterations to perform 
+             * @param rel_error Relative error to achieve 
+             * 
+            */
+            void solve(const double * A, const double * b, double * x, size_t size, int max_iters, double rel_error){
+                strategy.run(A, b, x, size, max_iters, rel_error);
             }
 
         private:
-            CGStrategy strategy;
+            Strategy strategy;
 
     };
 }
