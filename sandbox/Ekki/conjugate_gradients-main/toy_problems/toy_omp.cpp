@@ -15,7 +15,9 @@ int main(void)
     #pragma omp parallel 
     { 
        std::cout << "Hello World... from thread = " << omp_get_thread_num() << std::endl;
-       std::cout << "Max. thread nums = " << omp_get_max_threads() << std::endl; 
+       if (omp_get_thread_num() == 0){
+        std::cout << "Max. thread nums = " << omp_get_max_threads() << std::endl;
+       }
     } 
     // Ending of parallel region 
     return 0;
