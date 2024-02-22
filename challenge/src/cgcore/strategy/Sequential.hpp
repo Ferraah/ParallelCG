@@ -19,7 +19,7 @@ namespace cgcore{
     };
 
     void Sequential::run(const double * A , const double * b, double * x, size_t size, int max_iter, double res_error) const{
-        std::cout << "Sequential code.\n" << std::endl;
+        conjugate_gradient(A, b, x, size, max_iter, res_error);
     }
 
     double Sequential::dot(const double * x, const double * y, size_t size) const
@@ -89,8 +89,10 @@ namespace cgcore{
             axpby(alpha, p, 1.0, x, size);
             axpby(-alpha, Ap, 1.0, r, size);
             rr_new = dot(r, r, size);
+            std::cout << r[0] << std::endl;
             beta = rr_new / rr;
             rr = rr_new;
+
             if(std::sqrt(rr / bb) < rel_error) { break; }
             axpby(1.0, r, beta, p, size);
         }

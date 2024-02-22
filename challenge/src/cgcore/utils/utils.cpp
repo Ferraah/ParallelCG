@@ -12,7 +12,6 @@ bool utils::read_matrix_from_file(const char * filename, double * &matrix_out, s
         fprintf(stderr, "Cannot open output file\n");
         return false;
     }
-
     fread(&num_rows, sizeof(size_t), 1, file);
     fread(&num_cols, sizeof(size_t), 1, file);
     matrix = new double[num_rows * num_cols];
