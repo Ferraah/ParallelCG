@@ -10,7 +10,7 @@ ts=(1 2 3 4 5 6 7 8 9 10)
 module load intel
 icpx -O2 -fopenmp src/cg_timed_omp.cpp -o cg_timed_omp
 ./random_spd_system.sh 10000 io/matrix.bin io/rhs.bin
-echo "threads   time" > cg_bench_omp_fixM.txt
+echo "threads   matrix_size   time" > cg_bench_omp_fixM.txt
 
 for i in "${ts[@]}"
     do
@@ -20,7 +20,7 @@ for i in "${ts[@]}"
     n=1
     while read line; do
     echo "RESULTS FOR THIS ITERATION: $line"
-    echo "$line" >> cg_bench_omp_fixM.txt
+    echo "$i  $line" >> cg_bench_omp_fixM.txt
     n=$((n+1))
     done < $temp_path
 done
