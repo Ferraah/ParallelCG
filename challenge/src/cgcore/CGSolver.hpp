@@ -3,6 +3,7 @@
 
 #include <memory>
 #include "strategy/CGStrategy.hpp"
+#include "timer/Timer.hpp"
 
 namespace cgcore{
 
@@ -28,11 +29,21 @@ namespace cgcore{
              * 
             */
             void solve(const double * A, const double * b, double * x, size_t size, int max_iters, double rel_error){
+                timer.start();
                 strategy.run(A, b, x, size, max_iters, rel_error);
+                timer.stop();
             }
+
+            
+            const Timer& get_timer() const
+			{
+				return timer;
+			};
+
 
         private:
             Strategy strategy;
+            Timer timer;
 
     };
 }

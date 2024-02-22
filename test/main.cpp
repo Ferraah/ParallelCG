@@ -26,5 +26,6 @@ int main(int argc, char ** argv){
     delete [] vector;
     delete [] x;
 
+    solver.get_timer().print_last_formatted() ;
     return 0;
 }

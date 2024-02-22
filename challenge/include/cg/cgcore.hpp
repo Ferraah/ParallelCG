@@ -7,4 +7,5 @@
 
 #include "../../src/cgcore/utils/utils.hpp"
 
+#include "../../src/cgcore/timer/Timer.hpp"
 #endif
