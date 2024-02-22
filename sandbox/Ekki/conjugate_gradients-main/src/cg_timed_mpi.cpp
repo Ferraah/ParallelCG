@@ -6,6 +6,8 @@
 #include <fstream>
 #include <time.h>
 
+#include <mpi.h>
+
 // benchmarking: measuring time
 double wall_time(){
   struct timespec t;
@@ -83,15 +85,19 @@ void print_matrix(const double * matrix, size_t num_rows, size_t num_cols, FILE 
 }
 
 
-
-double dot(const double * x, const double * y, size_t size)
+// Parallelize dot product with MPI: pass only subsets of vecs and then allreduce
+double dot(const double * sub_x, const double * sub_y, size_t sub_size)
 {
-    double result = 0.0;
-    for(size_t i = 0; i < size; i++)
+    double result_tot;
+    double sub_result = 0.0;
+    for(size_t i = 0; i < sub_size; i++)
     {
-        result += x[i] * y[i];
+        sub_result += sub_x[i] * sub_y[i];
     }
-    return result;
+
+    MPI_Allreduce(&sub_result, &result_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+    return result_tot;
 }
 
 
@@ -127,6 +133,10 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
 
 void conjugate_gradients(const double * A, const double * b, double * x, size_t size, int max_iters, double rel_error)
 {
+    int rank, num_processes;
+    MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
     double alpha, beta, bb, rr, rr_new;
     double * r = new double[size];
     double * p = new double[size];
@@ -199,8 +209,14 @@ int main(int argc, char ** argv)
     printf("  rel_error:         %e\n", rel_error);
     printf("\n");
 
+    // Initialize MPI
+    MPI_Init(&argc, &argv);
+    int rank, num_processes;
+    MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 
+    // TODO: Have to think about how to read in matrices and divide them upon ranks
     double * matrix;
     double * rhs;
     size_t size;
@@ -255,8 +271,11 @@ int main(int argc, char ** argv)
         size = matrix_rows;
     }
 
-    printf("Solving the system ...\n");
+    if (rank == 0){
+        printf("Solving the system ...\n");
+    }
     double * sol = new double[size];
+
     double t_comp = - wall_time();
     conjugate_gradients(matrix, rhs, sol, size, max_iters, rel_error);
     t_comp += wall_time();
@@ -264,28 +283,32 @@ int main(int argc, char ** argv)
     printf("The c-g-algorithm took %8g s. \n", t_comp);
     printf("\n");
 
-    // write header to file
-    // myfile.open(file_name);
-    // myfile << "matrix_size \t" << "time \n";
-    // myfile.close(); 
+    
 
-    // Writing results to file
-    myfile.open(file_name);
-    myfile << size << "\t" << t_comp << "\n";
-    myfile.close();
+    if (rank == 0){
+         // write header to file
+        // myfile.open(file_name);
+        // myfile << "matrix_size \t" << "time \n";
+        // myfile.close(); 
 
-    printf("Writing solution to file ...\n");
-    double t_write_m = - wall_time();
-    bool success_write_sol = write_matrix_to_file(output_file_sol, sol, size, 1);
-    if(!success_write_sol)
-    {
-        fprintf(stderr, "Failed to save solution\n");
-        return 6;
+        // Writing results to file
+        myfile.open(file_name);
+        myfile << size << "\t" << t_comp << "\n";
+        myfile.close();
+
+        printf("Writing solution to file ...\n");
+        double t_write_m = - wall_time();
+        bool success_write_sol = write_matrix_to_file(output_file_sol, sol, size, 1);
+        if(!success_write_sol)
+        {
+            fprintf(stderr, "Failed to save solution\n");
+            return 6;
+        }
+        t_write_m += wall_time();
+        printf("Done\n");
+        printf("Writing the matrix back took %8g s. \n", t_write_m);
+        printf("\n");
     }
-    t_write_m += wall_time();
-    printf("Done\n");
-    printf("Writing the matrix back took %8g s. \n", t_write_m);
-    printf("\n");
 
     delete[] matrix;
     delete[] rhs;
@@ -293,5 +316,6 @@ int main(int argc, char ** argv)
 
     printf("Finished successfully\n");
 
+    MPI_Finalize();
     return 0;
 }
