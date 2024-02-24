@@ -8,35 +8,8 @@
 #define SIZE 1<<30
 #define NUM_ROWS 1<<10
 #define NUM_COLS NUM_ROWS
+#define MAX_ERR 1e-5
 
-void test_matrix_vector_product()
-{
-    double* A;
-    double* x;
-    double* cpu_res;
-    double* gpu_res;
-
-    // reading a matrix
-    // [...]
-
-    // computing the product
-    std::cout << "serial CPU computation...";
-    unsigned int begin_row_index;
-    unsigned int end_row_index;
-
-    double accumulator = 0.0;
-    for(unsigned int r = 0; r < num_rows; ++r)
-    {
-        accumulator = 0.0;
-        for (unsigned int c = 0; c < num_cols; ++c)
-        {
-            accumulator += A[r * num_cols + c] * x[c];
-        }
-        cpu_res[r] = accumulator;
-
-    }
-    std::cout << "done";
-}
 
 void test_dot_product()
 {
@@ -51,7 +24,7 @@ void test_dot_product()
         b[i] = 1.0;
     }
     
-    Test for increasing number of sizes
+    // Test for increasing number of sizes
     for (unsigned int size = 256; size <= 1<<30; size <<=1)
     {
         std::cout << "====== SIZE: " << size << " ======" << std::endl;
@@ -80,7 +53,7 @@ void test_matrix_vector_product()
     double* cpu_res;
     double* gpu_res;
 
-    unsigned int num_rows = ;
+    unsigned int num_rows = NUM_ROWS;
     unsigned int num_cols;
 
 
@@ -102,12 +75,21 @@ void test_matrix_vector_product()
 
     }
     std::cout << "done";
+
+    A_times_x_func(A, x, gpu_res, num_rows, num_cols);
+
+    std::cout << "Checking the result...";
+    for (unsigned int i = 0; i < num_rows; ++i)
+    {
+        assert("Error doing calculation" && std::abs(gpu_res[i] - cpu_res[i]) < MAX_ERR);
+    }
+    std::cout << " Correct!" << std::endl;
 }
 
 int main()
 {
     // test_dot_product();   
-    test_matrix_product();
+    test_matrix_vector_product();
 
     return 0;
 }

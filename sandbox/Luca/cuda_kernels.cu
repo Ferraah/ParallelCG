@@ -4,7 +4,7 @@
 // Include (.hpp) used to link with the .cpp file
 #include "gpu_tests.hpp"
 
-void saxpy_func(double a, double* x, double* y, unsigned int size)
+void daxpy_func(double a, double* x, double* y, unsigned int size)
 {
     // just compute the stride and 
     // call the kernel.

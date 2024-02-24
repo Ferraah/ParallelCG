@@ -8,7 +8,7 @@
 * Computes the sum of two vectos, a*x + y 
 * saving the result in x
 */
-__global__ void saxpy_kernel(
+__global__ void daxpy_kernel(
     double a,
     double* x,
     double* y,
