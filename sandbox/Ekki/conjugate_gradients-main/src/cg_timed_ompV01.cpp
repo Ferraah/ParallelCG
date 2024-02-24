@@ -6,7 +6,7 @@
 #include <fstream>
 #include <time.h>
 
-#include <mpi.h>
+#include <omp.h>
 
 // benchmarking: measuring time
 double wall_time(){
@@ -85,19 +85,16 @@ void print_matrix(const double * matrix, size_t num_rows, size_t num_cols, FILE 
 }
 
 
-// Parallelize dot product with MPI: pass only subsets of vecs and then allreduce
-double dot(const double * sub_x, const double * sub_y, size_t sub_size)
+
+double dot(const double * x, const double * y, size_t size)
 {
-    double result_tot;
-    double sub_result = 0.0;
-    for(size_t i = 0; i < sub_size; i++)
+    double result = 0.0;
+    #pragma omp parallel for default(none) reduction(+:result) shared(x, y, size) // this might have no impact on the performance
+    for(size_t i = 0; i < size; i++)
     {
-        sub_result += sub_x[i] * sub_y[i];
+        result += x[i] * y[i];
     }
-
-    MPI_Allreduce(&sub_result, &result_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-    return result_tot;
+    return result;
 }
 
 
@@ -105,7 +102,7 @@ double dot(const double * sub_x, const double * sub_y, size_t sub_size)
 void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 {
     // y = alpha * x + beta * y
-
+    #pragma omp parallel for default(none) shared(alpha, x, beta, y, size)
     for(size_t i = 0; i < size; i++)
     {
         y[i] = alpha * x[i] + beta * y[i];
@@ -117,7 +114,7 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols)
 {
     // y = alpha * A * x + beta * y;
-
+    #pragma omp parallel for simd shared(alpha, A, x, beta, y, num_rows, num_cols)
     for(size_t r = 0; r < num_rows; r++)
     {
         double y_val = 0.0;
@@ -133,16 +130,13 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
 
 void conjugate_gradients(const double * A, const double * b, double * x, size_t size, int max_iters, double rel_error)
 {
-    int rank, num_processes;
-    MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-    double alpha, beta, bb, rr, rr_new;
-    double * r = new double[size];
-    double * p = new double[size];
-    double * Ap = new double[size];
+    double alpha, beta, bb, rr, rr_new; // bb = b*b
+    double * r = new double[size];      // r = residual = b - A * x
+    double * p = new double[size];      // commonly denoted as d
+    double * Ap = new double[size];     // Ap = A * d
     int num_iters;
 
+    // Initializing: x(0)=vec(0) -> r = b & start with d(0) = p(0) = r(0)
     for(size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
@@ -154,15 +148,15 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     rr = bb;
     for(num_iters = 1; num_iters <= max_iters; num_iters++)
     {
-        gemv(1.0, A, p, 0.0, Ap, size, size);
-        alpha = rr / dot(p, Ap, size);
-        axpby(alpha, p, 1.0, x, size);
-        axpby(-alpha, Ap, 1.0, r, size);
-        rr_new = dot(r, r, size);
-        beta = rr_new / rr;
-        rr = rr_new;
-        if(std::sqrt(rr / bb) < rel_error) { break; }
-        axpby(1.0, r, beta, p, size);
+        gemv(1.0, A, p, 0.0, Ap, size, size);           // = A * d = Ap (we are working with square matrices) -> stored in Ap
+        alpha = rr / dot(p, Ap, size);                  // = alpha
+        axpby(alpha, p, 1.0, x, size);                  // calc. new x -> store in x
+        axpby(-alpha, Ap, 1.0, r, size);                // calc. new r -> store in r
+        rr_new = dot(r, r, size);                       // r_new * r_new
+        beta = rr_new / rr;                             // = beta
+        rr = rr_new;                                    // set for next iteration
+        if(std::sqrt(rr / bb) < rel_error) { break; }   // -> break condition (rel. error small enough)
+        axpby(1.0, r, beta, p, size);                   // next direction p
     }
 
     delete[] r;
@@ -209,14 +203,8 @@ int main(int argc, char ** argv)
     printf("  rel_error:         %e\n", rel_error);
     printf("\n");
 
-    // Initialize MPI
-    MPI_Init(&argc, &argv);
-    int rank, num_processes;
-    MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
 
-    // TODO: Have to think about how to read in matrices and divide them upon ranks
     double * matrix;
     double * rhs;
     size_t size;
@@ -271,11 +259,8 @@ int main(int argc, char ** argv)
         size = matrix_rows;
     }
 
-    if (rank == 0){
-        printf("Solving the system ...\n");
-    }
+    printf("Solving the system ...\n");
     double * sol = new double[size];
-
     double t_comp = - wall_time();
     conjugate_gradients(matrix, rhs, sol, size, max_iters, rel_error);
     t_comp += wall_time();
@@ -283,32 +268,28 @@ int main(int argc, char ** argv)
     printf("The c-g-algorithm took %8g s. \n", t_comp);
     printf("\n");
 
-    
+    // write header to file
+    // myfile.open(file_name);
+    // myfile << "matrix_size \t" << "time \n";
+    // myfile.close(); 
 
-    if (rank == 0){
-         // write header to file
-        // myfile.open(file_name);
-        // myfile << "matrix_size \t" << "time \n";
-        // myfile.close(); 
+    // Writing results to file
+    myfile.open(file_name);
+    myfile << size << "\t" << t_comp << "\n";
+    myfile.close();
 
-        // Writing results to file
-        myfile.open(file_name);
-        myfile << size << "\t" << t_comp << "\n";
-        myfile.close();
-
-        printf("Writing solution to file ...\n");
-        double t_write_m = - wall_time();
-        bool success_write_sol = write_matrix_to_file(output_file_sol, sol, size, 1);
-        if(!success_write_sol)
-        {
-            fprintf(stderr, "Failed to save solution\n");
-            return 6;
-        }
-        t_write_m += wall_time();
-        printf("Done\n");
-        printf("Writing the matrix back took %8g s. \n", t_write_m);
-        printf("\n");
+    printf("Writing solution to file ...\n");
+    double t_write_m = - wall_time();
+    bool success_write_sol = write_matrix_to_file(output_file_sol, sol, size, 1);
+    if(!success_write_sol)
+    {
+        fprintf(stderr, "Failed to save solution\n");
+        return 6;
     }
+    t_write_m += wall_time();
+    printf("Done\n");
+    printf("Writing the matrix back took %8g s. \n", t_write_m);
+    printf("\n");
 
     delete[] matrix;
     delete[] rhs;
@@ -316,6 +297,5 @@ int main(int argc, char ** argv)
 
     printf("Finished successfully\n");
 
-    MPI_Finalize();
     return 0;
 }
