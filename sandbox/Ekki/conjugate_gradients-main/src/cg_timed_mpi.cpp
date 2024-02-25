@@ -114,19 +114,37 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 
 
 
-void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols)
+void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols, int num_processes, int my_rank, const int * displacements)
 {
     // y = alpha * A * x + beta * y;
 
-    for(size_t r = 0; r < num_rows; r++)
+    // Split computation along A and y: e.g.: p1 has rows 1 to num_roms/num_processes
+
+    int my_num_rows = (int)num_rows / num_processes;
+    int my_start = my_rank * my_num_rows;
+    int my_end = my_start + my_num_rows
+    if (my_rank == num_processes - 1){  // last rank should clean up
+        my_start = my_rank * my_num_rows;
+        my_num_rows = num_rows - ((int)num_rows / num_processes) * (num_processes - 1);
+        my_end = my_start + my_num_rows;
+    }
+
+    // local y
+    double * my_y = new double[my_num_rows];
+
+    // Determine correct range for each rank
+    // p1: 0 - my_num_rows - 1, p2: my_num_rows - 
+    for(size_t r = my_start ; r < my_end; r++)
     {
         double y_val = 0.0;
         for(size_t c = 0; c < num_cols; c++)
         {
             y_val += alpha * A[r * num_cols + c] * x[c];
         }
-        y[r] = beta * y[r] + y_val;
+        my_y[r - my_start] = beta * y[r] + y_val;
     }
+    // Stack all local y-vectors (my_y)
+    MPI_Allgatherv(my_y, my_num_rows, MPI_DOUBLE, y, num_rows, displacements, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
 
@@ -143,6 +161,12 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     double * Ap = new double[size];
     int num_iters;
 
+    // Displacement for MPI_Allgatherv
+    int displacements[num_processes];
+    for (int i = 0; i < num_processes; i++){
+        displacements[i] = size / num_processes * i;
+    }
+
     for(size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
@@ -154,7 +178,7 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     rr = bb;
     for(num_iters = 1; num_iters <= max_iters; num_iters++)
     {
-        gemv(1.0, A, p, 0.0, Ap, size, size);
+        gemv(1.0, A, p, 0.0, Ap, size, size, num_processes, rank, displacements); // Parallelized with Allgatherv
         alpha = rr / dot(p, Ap, size);
         axpby(alpha, p, 1.0, x, size);
         axpby(-alpha, Ap, 1.0, r, size);
@@ -217,6 +241,7 @@ int main(int argc, char ** argv)
 
 
     // TODO: Have to think about how to read in matrices and divide them upon ranks
+    // Done: Do not divide them explicitly, but rather assign local domain within each function for each specific rank
     double * matrix;
     double * rhs;
     size_t size;
