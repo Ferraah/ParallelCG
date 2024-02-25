@@ -114,7 +114,7 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols)
 {
     // y = alpha * A * x + beta * y;
-    #pragma omp parallel for simd shared(alpha, A, x, beta, y, num_rows, num_cols)
+    #pragma omp parallel for simd shared(alpha, A, x, beta, y, num_rows, num_cols) // or use collapse
     for(size_t r = 0; r < num_rows; r++)
     {
         double y_val = 0.0;

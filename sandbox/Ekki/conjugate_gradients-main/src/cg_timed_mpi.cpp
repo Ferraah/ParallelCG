@@ -1,3 +1,10 @@
+//
+// Execute with: module load OpenMPI
+//               mpic++ -o cg_timed_mpi src/cg_timed_mpi.cpp 
+//               srun -n 4 ./cg_timed_mpi io/matrix.bin io/rhs.bin io/sol.bin        // up to 256 processes
+//
+
+
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -85,19 +92,29 @@ void print_matrix(const double * matrix, size_t num_rows, size_t num_cols, FILE 
 }
 
 
-// Parallelize dot product with MPI: pass only subsets of vecs and then allreduce
-double dot(const double * sub_x, const double * sub_y, size_t sub_size)
+// Parallelize dot product with MPI: pass whole vectors and take care of subsets within function
+// double dot(const double * x, const double * y, size_t size)
+// {
+//     double result_tot;
+//     double sub_result = 0.0;
+//     for(size_t i = 0; i < sub_size; i++)
+//     {
+//         sub_result += sub_x[i] * sub_y[i];
+//     }
+
+//     MPI_Allreduce(&sub_result, &result_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+//     return result_tot;
+// }
+
+double dot(const double * x, const double * y, size_t size)
 {
-    double result_tot;
-    double sub_result = 0.0;
-    for(size_t i = 0; i < sub_size; i++)
+    double result = 0.0;
+    for(size_t i = 0; i < size; i++)
     {
-        sub_result += sub_x[i] * sub_y[i];
+        result += x[i] * y[i];
     }
-
-    MPI_Allreduce(&sub_result, &result_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-    return result_tot;
+    return result;
 }
 
 
@@ -114,19 +131,37 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 
 
 
-void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols)
+void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols, int num_processes, int my_rank, int * displacements, int * counts)
 {
     // y = alpha * A * x + beta * y;
 
-    for(size_t r = 0; r < num_rows; r++)
+    // Split computation along A and y: e.g.: p1 has rows 1 to num_roms/num_processes
+    // Compute remainder for load balancing -> use modulo
+    int my_num_rows = (int)num_rows / num_processes;
+    int my_start = my_rank * my_num_rows;
+    int my_end = my_start + my_num_rows;
+    if (my_rank == num_processes - 1){  // last rank should clean up
+        my_start = my_rank * my_num_rows;
+        my_num_rows = num_rows - ((int)num_rows / num_processes) * (num_processes - 1);
+        my_end = my_start + my_num_rows;
+    }
+
+    // local y
+    double my_y[my_num_rows];
+
+    // Determine correct range for each rank
+    // p1: 0 - my_num_rows - 1, p2: my_num_rows - 
+    for(size_t r = my_start ; r < my_end; r++)
     {
         double y_val = 0.0;
         for(size_t c = 0; c < num_cols; c++)
         {
             y_val += alpha * A[r * num_cols + c] * x[c];
         }
-        y[r] = beta * y[r] + y_val;
+        my_y[r - my_start] = beta * y[r] + y_val;
     }
+    // Stack all local y-vectors (my_y)
+    MPI_Allgatherv(my_y, my_num_rows, MPI_DOUBLE, y, counts, displacements, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
 
@@ -143,6 +178,17 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     double * Ap = new double[size];
     int num_iters;
 
+    // Displacement and counts for MPI_Allgatherv
+    int displacements[num_processes];
+    int counts[num_processes];
+    for (int i = 0; i < num_processes; i++){
+        displacements[i] = ((int)(size / num_processes)) * i;
+        counts[i] = ((int)(size / num_processes));
+        if (rank == num_processes - 1){  // last rank should clean up
+        counts[i] = size - ((int)(size / num_processes)) * (num_processes - 1);
+        }
+    }
+
     for(size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
@@ -154,9 +200,9 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     rr = bb;
     for(num_iters = 1; num_iters <= max_iters; num_iters++)
     {
-        gemv(1.0, A, p, 0.0, Ap, size, size);
+        gemv(1.0, A, p, 0.0, Ap, size, size, num_processes, rank, displacements, counts); // Parallelized with Allgatherv
         alpha = rr / dot(p, Ap, size);
-        axpby(alpha, p, 1.0, x, size);
+        axpby(alpha, p, 1.0, x, size);      // do not parallize with MPI due to overhead
         axpby(-alpha, Ap, 1.0, r, size);
         rr_new = dot(r, r, size);
         beta = rr_new / rr;
@@ -217,6 +263,7 @@ int main(int argc, char ** argv)
 
 
     // TODO: Have to think about how to read in matrices and divide them upon ranks
+    // Done: Do not divide them explicitly, but rather assign local domain within each function for each specific rank
     double * matrix;
     double * rhs;
     size_t size;
@@ -270,6 +317,7 @@ int main(int argc, char ** argv)
 
         size = matrix_rows;
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if (rank == 0){
         printf("Solving the system ...\n");
@@ -314,7 +362,7 @@ int main(int argc, char ** argv)
     delete[] rhs;
     delete[] sol;
 
-    printf("Finished successfully\n");
+    printf("%d: Finished successfully\n", rank);
 
     MPI_Finalize();
     return 0;

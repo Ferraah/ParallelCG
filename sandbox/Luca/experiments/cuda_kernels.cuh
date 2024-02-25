@@ -8,7 +8,7 @@
 * Computes the sum of two vectos, a*x + y 
 * saving the result in x
 */
-__global__ void saxpy_kernel(
+__global__ void daxpy_kernel(
     double a,
     double* x,
     double* y,
@@ -82,7 +82,6 @@ __global__ void A_times_x_kernel(
 )
 {
     unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
-    unsigned int local_id = threadIdx.x;
     unsigned int stride = blockDim.x * gridDim.x;
 
     // The idea here is that each thread of each block is assigned to a specific row of
@@ -118,7 +117,101 @@ __global__ void A_times_x_kernel_opt(
     unsigned int tid = threadIdx.x + blockIdx.x * blockDim.x;
     unsigned int local_id = threadIdx.x;
 
+    // This first bunch of shared memory is used to store the vector
+    extern __shared__ double shared_mem[];
+
+    unsigned int stride = blockDim.x * gridDim.x;
+
+    // Loading the vector in the shared memory
+    for (unsigned int pos = tid; pos < num_rows; pos += stride)
+    {
+        shared_mem[local_id] = x[pos];
+    }
+    __syncthreads();
+
+    // Compute now the product using the data in the shared memory
+    for (unsigned int row = tid; row < num_rows; row += stride)
+    {
+        double accumulator = 0.0;
+        // And here there is no use of shared memory.
+        for (unsigned int col = 0; col < num_cols; ++col)
+        {
+            accumulator += A[row * num_cols + col] * shared_mem[col];
+        }
+        // Finally, store the result in the corresponsing element
+        // of the vector.
+        res[row] = accumulator;
+    }
 
 }
-#endif // CUDA_TEST_VEC_SUM
     
+#define TILE_WIDTH 16
+
+/**
+* Compute the matrix-vector product (on the right). The matrix
+* is linearized. This version is the optimized kernel with tiling. which uses
+* shared memory and optimized gpu programming techniques
+* 
+*/
+__global__ void A_times_x_kernel_opt_tiled(
+    double* A,
+    double* x,
+    double* res,
+    unsigned int m,
+    unsigned int n
+)
+{
+    // Shared memory vectors. The first is used to load 
+    // the matrix, while the second stores the vector
+
+    __shared__ double shared_matrix[TILE_WIDTH][TILE_WIDTH];
+    __shared__ double shared_vector[TILE_WIDTH];
+
+    int bx = blockIdx.x;
+    int tx = threadIdx.x;
+
+    int row = bx * TILE_WIDTH + tx;
+
+    double partial = 0.0;
+    // Iterating through all the tiles into which the matrix is subdivided.
+    for (unsigned int p = 0; p < (n-1)/TILE_WIDTH + 1; ++p)
+    {
+        // We start by loading the vector x.
+        // The matrix may not be square and also it may happen
+        // that the dimension does not divide completely the size of each
+        // tile => we introduce padding with 0s.
+        if (row < m && p * TILE_WIDTH + tx < n)
+        {
+            shared_vector[tx] = x[p * TILE_WIDTH + tx];
+        }
+        else
+        {
+            shared_vector[tx] = 0.0; 
+        }
+        __syncthreads();
+        // Then we load the shared matrix. The idea here is the same.
+        
+        if (row < m)
+        {
+            for (int c = 0; c < TILE_WIDTH && p * TILE_WIDTH + c < n; ++c)
+            {
+                shared_matrix[tx][c] = A[row * n + p * TILE_WIDTH + c];
+            }
+            __syncthreads();
+            for (int i = 0; i < TILE_WIDTH && p * TILE_WIDTH + i < n; ++i)
+            {
+                partial += shared_matrix[tx][i] * shared_vector[i];
+            }
+
+        }        
+        __syncthreads();
+    }
+
+    if (row < m)
+    {
+        res[row] = partial;
+    }
+
+}
+
+#endif // CUDA_TEST_VEC_SUM
