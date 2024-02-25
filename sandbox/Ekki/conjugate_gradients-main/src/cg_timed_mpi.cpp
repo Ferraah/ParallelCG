@@ -136,6 +136,7 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
     // y = alpha * A * x + beta * y;
 
     // Split computation along A and y: e.g.: p1 has rows 1 to num_roms/num_processes
+    // Compute remainder for load balancing -> use modulo
     int my_num_rows = (int)num_rows / num_processes;
     int my_start = my_rank * my_num_rows;
     int my_end = my_start + my_num_rows;
@@ -201,7 +202,7 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     {
         gemv(1.0, A, p, 0.0, Ap, size, size, num_processes, rank, displacements, counts); // Parallelized with Allgatherv
         alpha = rr / dot(p, Ap, size);
-        axpby(alpha, p, 1.0, x, size);
+        axpby(alpha, p, 1.0, x, size);      // do not parallize with MPI due to overhead
         axpby(-alpha, Ap, 1.0, r, size);
         rr_new = dot(r, r, size);
         beta = rr_new / rr;
