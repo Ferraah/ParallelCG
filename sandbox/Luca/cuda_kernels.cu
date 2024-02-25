@@ -4,13 +4,15 @@
 // Include (.hpp) used to link with the .cpp file
 #include "gpu_tests.hpp"
 
+#define BLOCKS_PER_DIM 4
+
 void daxpy_func(double a, double* x, double* y, unsigned int size)
 {
     // just compute the stride and 
     // call the kernel.
 
     unsigned int num_blocks = 25;
-    unsigned int thread_per_blocks = 512;
+    unsigned int threads_per_block = 512;
 
     // allocate device memory
     double* dev_x;
@@ -24,7 +26,7 @@ void daxpy_func(double a, double* x, double* y, unsigned int size)
 
     double c = 1.0;
 
-    saxpy_kernel<<<num_blocks, thread_per_blocks>>>(c, dev_x, dev_y, size);
+    daxpy_kernel<<<num_blocks, threads_per_block>>>(c, dev_x, dev_y, size);
     cudaDeviceSynchronize();
     std::cout << "Kernel returned" << std::endl;
     cudaMemcpy(x, dev_x, size * sizeof(double), cudaMemcpyDeviceToHost);
@@ -91,6 +93,58 @@ void A_times_x_func(double* A,
 
     unsigned int total_elems = num_rows * num_cols;
 
+    std::cout << "Allocating gpu memory..." << std::endl;
+
+    cudaMalloc(&dev_A, total_elems * sizeof(double));
+    cudaMalloc(&dev_x, (num_rows) * sizeof(double));
+    cudaMalloc(&dev_res, (num_rows) * sizeof(double));
+
+    std::cout << "done" << std::endl;
+    // copying data from cpu to gpu
+
+    std::cout << "Copying data towards gpu..." << std::endl;
+    cudaMemcpy(dev_A, A, total_elems * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_x, x, num_rows * sizeof(double), cudaMemcpyHostToDevice);
+    std::cout << "done" << std::endl;
+
+    std::cout << "Calling the kernel..." << std::endl;
+    A_times_x_kernel<<<num_blocks, num_threads>>>(
+        dev_A,
+        dev_x,
+        dev_res,
+        num_rows,
+        num_cols
+    );
+    cudaDeviceSynchronize();
+    std::cout << "done" << std::endl;
+
+    cudaMemcpy(res, dev_res, num_rows * sizeof(double), cudaMemcpyDeviceToHost);
+    
+    cudaFree(dev_A);
+    cudaFree(dev_x);
+    cudaFree(dev_res);
+}
+
+
+void A_times_x_func_opt(double* A,
+    double* x, 
+    double* res, 
+    unsigned int num_rows, 
+    unsigned int num_cols)
+{
+    unsigned int num_blocks = 25;
+    unsigned int num_threads = 1024;
+    
+    double* dev_A;
+    double* dev_x;
+
+    double* dev_res;
+
+    // allocating all the vector on the gpu
+
+    unsigned int total_elems = num_rows * num_cols;
+    std::cout << "Optimized gpu kernel" << std::endl;
+
     std::cout << "Allocating gpu memory...";
 
     cudaMalloc(&dev_A, total_elems * sizeof(double));
@@ -105,22 +159,75 @@ void A_times_x_func(double* A,
     cudaMemcpy(dev_x, x, num_rows * sizeof(double), cudaMemcpyHostToDevice);
     std::cout << "done" << std::endl;
 
-
-    unsigned int num_blocks = 3;
-    unsigned int threads_per_block = 1024;
-
     std::cout << "Calling the kernel...";
-    A_times_x_kernel<<<num_blocks, threads_per_block>>>(
+    A_times_x_kernel_opt<<<num_blocks, num_threads, num_rows * sizeof(double)>>>(
         dev_A,
         dev_x,
         dev_res,
         num_rows,
-        num_cols,
-    )
+        num_cols
+    );
     cudaDeviceSynchronize();
-    std::cout << "done";
+    std::cout << "done" << std::endl;
 
     cudaMemcpy(res, dev_res, num_rows * sizeof(double), cudaMemcpyDeviceToHost);
     
+    cudaFree(dev_A);
+    cudaFree(dev_x);
+    cudaFree(dev_res);
 }
 
+void A_times_x_func_opt_tiled(double* A,
+    double* x, 
+    double* res, 
+    unsigned int num_rows, 
+    unsigned int num_cols)
+{
+ 
+    const unsigned int tile_width = 16;
+    dim3 num_blocks((num_rows-1) / tile_width + 1, 1, 1);
+    dim3 threads_per_block(tile_width, 1, 1);
+
+    double* dev_A;
+    double* dev_x;
+
+    double* dev_res;
+
+    // allocating all the vector on the gpu
+
+    unsigned int total_elems = num_rows * num_cols;
+    std::cout << "Optimized gpu kernel with tiling" << std::endl;
+
+    std::cout << "Allocating gpu memory...";
+
+    cudaMalloc(&dev_A, total_elems * sizeof(double));
+    cudaMalloc(&dev_x, (num_rows) * sizeof(double));
+    cudaMalloc(&dev_res, (num_rows) * sizeof(double));
+
+    std::cout << "done" << std::endl;
+    // copying data from cpu to gpu
+
+    std::cout << "Copying data towards gpu...";
+    cudaMemcpy(dev_A, A, total_elems * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_x, x, num_rows * sizeof(double), cudaMemcpyHostToDevice);
+    std::cout << "done" << std::endl;
+
+    std::cout << "Calling the kernel...";
+
+    // We require the shared memory to be max doubles * sizeof(double) bytes for this to work
+    A_times_x_kernel_opt_tiled<<<num_blocks, threads_per_block>>>(
+        dev_A,
+        dev_x,
+        dev_res,
+        num_rows,
+        num_cols
+    );
+    cudaDeviceSynchronize();
+    std::cout << "done" << std::endl;
+
+    cudaMemcpy(res, dev_res, num_rows * sizeof(double), cudaMemcpyDeviceToHost);
+    
+    cudaFree(dev_A);
+    cudaFree(dev_x);
+    cudaFree(dev_res);
+}
