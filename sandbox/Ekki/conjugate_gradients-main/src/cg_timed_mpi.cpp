@@ -85,19 +85,29 @@ void print_matrix(const double * matrix, size_t num_rows, size_t num_cols, FILE 
 }
 
 
-// Parallelize dot product with MPI: pass only subsets of vecs and then allreduce
-double dot(const double * sub_x, const double * sub_y, size_t sub_size)
+// Parallelize dot product with MPI: pass whole vectors and take care of subsets within function
+// double dot(const double * x, const double * y, size_t size)
+// {
+//     double result_tot;
+//     double sub_result = 0.0;
+//     for(size_t i = 0; i < sub_size; i++)
+//     {
+//         sub_result += sub_x[i] * sub_y[i];
+//     }
+
+//     MPI_Allreduce(&sub_result, &result_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+
+//     return result_tot;
+// }
+
+double dot(const double * x, const double * y, size_t size)
 {
-    double result_tot;
-    double sub_result = 0.0;
-    for(size_t i = 0; i < sub_size; i++)
+    double result = 0.0;
+    for(size_t i = 0; i < size; i++)
     {
-        sub_result += sub_x[i] * sub_y[i];
+        result += x[i] * y[i];
     }
-
-    MPI_Allreduce(&sub_result, &result_tot, 1, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
-
-    return result_tot;
+    return result;
 }
 
 
@@ -164,7 +174,7 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     // Displacement for MPI_Allgatherv
     int displacements[num_processes];
     for (int i = 0; i < num_processes; i++){
-        displacements[i] = size / num_processes * i;
+        displacements[i] = ((int)(size / num_processes)) * i;
     }
 
     for(size_t i = 0; i < size; i++)
@@ -295,6 +305,7 @@ int main(int argc, char ** argv)
 
         size = matrix_rows;
     }
+    MPI_Barrier(MPI_COMM_WORLD);
 
     if (rank == 0){
         printf("Solving the system ...\n");
@@ -339,7 +350,7 @@ int main(int argc, char ** argv)
     delete[] rhs;
     delete[] sol;
 
-    printf("Finished successfully\n");
+    printf("%d: Finished successfully\n", rank);
 
     MPI_Finalize();
     return 0;
