@@ -1,3 +1,10 @@
+//
+// Execute with: module load OpenMPI
+//               mpic++ -o cg_timed_mpi src/cg_timed_mpi.cpp 
+//               srun -n 4 ./cg_timed_mpi io/matrix.bin io/rhs.bin io/sol.bin        // up to 256 processes
+//
+
+
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -124,7 +131,7 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 
 
 
-void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols, int num_processes, int my_rank, int * displacements)
+void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols, int num_processes, int my_rank, int * displacements, int * counts)
 {
     // y = alpha * A * x + beta * y;
 
@@ -153,7 +160,7 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
         my_y[r - my_start] = beta * y[r] + y_val;
     }
     // Stack all local y-vectors (my_y)
-    MPI_Allgatherv(my_y, my_num_rows, MPI_DOUBLE, y, num_rows, displacements, MPI_DOUBLE, MPI_COMM_WORLD);
+    MPI_Allgatherv(my_y, my_num_rows, MPI_DOUBLE, y, counts, displacements, MPI_DOUBLE, MPI_COMM_WORLD);
 }
 
 
@@ -170,10 +177,15 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     double * Ap = new double[size];
     int num_iters;
 
-    // Displacement for MPI_Allgatherv
+    // Displacement and counts for MPI_Allgatherv
     int displacements[num_processes];
+    int counts[num_processes];
     for (int i = 0; i < num_processes; i++){
         displacements[i] = ((int)(size / num_processes)) * i;
+        counts[i] = ((int)(size / num_processes));
+        if (rank == num_processes - 1){  // last rank should clean up
+        counts[i] = size - ((int)(size / num_processes)) * (num_processes - 1);
+        }
     }
 
     for(size_t i = 0; i < size; i++)
@@ -187,7 +199,7 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     rr = bb;
     for(num_iters = 1; num_iters <= max_iters; num_iters++)
     {
-        gemv(1.0, A, p, 0.0, Ap, size, size, num_processes, rank, displacements); // Parallelized with Allgatherv
+        gemv(1.0, A, p, 0.0, Ap, size, size, num_processes, rank, displacements, counts); // Parallelized with Allgatherv
         alpha = rr / dot(p, Ap, size);
         axpby(alpha, p, 1.0, x, size);
         axpby(-alpha, Ap, 1.0, r, size);
