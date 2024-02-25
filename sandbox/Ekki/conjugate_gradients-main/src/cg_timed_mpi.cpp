@@ -124,15 +124,14 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 
 
 
-void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols, int num_processes, int my_rank, const int * displacements)
+void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols, int num_processes, int my_rank, int * displacements)
 {
     // y = alpha * A * x + beta * y;
 
     // Split computation along A and y: e.g.: p1 has rows 1 to num_roms/num_processes
-
     int my_num_rows = (int)num_rows / num_processes;
     int my_start = my_rank * my_num_rows;
-    int my_end = my_start + my_num_rows
+    int my_end = my_start + my_num_rows;
     if (my_rank == num_processes - 1){  // last rank should clean up
         my_start = my_rank * my_num_rows;
         my_num_rows = num_rows - ((int)num_rows / num_processes) * (num_processes - 1);
@@ -140,7 +139,7 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
     }
 
     // local y
-    double * my_y = new double[my_num_rows];
+    double my_y[my_num_rows];
 
     // Determine correct range for each rank
     // p1: 0 - my_num_rows - 1, p2: my_num_rows - 
