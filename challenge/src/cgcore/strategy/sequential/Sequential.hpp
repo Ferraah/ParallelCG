@@ -1,7 +1,7 @@
 #ifndef SEQUENTIAL_HPP
 #define SEQUENTIAL_HPP
 
-#include "CGStrategy.hpp"
+#include "../CGStrategy.hpp"
 #include <cmath>
 #include <stdio.h>
 

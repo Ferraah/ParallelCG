@@ -1,12 +1,13 @@
 # establishes policy settings and ensures that the following CMake
 # functions are run with a compatible version of CMake
-cmake_minimum_required(VERSION 3.10)
+  cmake_minimum_required(VERSION 3.13)
 
 # Project name and version
 project(CHALLENGE VERSION 1.0)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_COMPILER icpx)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 # Define default build type if not provided
@@ -37,6 +38,9 @@ find_package(MPI REQUIRED)
 cmake_policy(SET CMP0074 NEW)
 find_package(OpenMP REQUIRED)
 
+
+
 add_subdirectory(challenge)
 add_subdirectory(test)
+
 
