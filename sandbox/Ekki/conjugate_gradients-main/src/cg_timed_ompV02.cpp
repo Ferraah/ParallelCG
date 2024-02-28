@@ -7,6 +7,7 @@
 #include <time.h>
 
 #include <omp.h>
+#include <numeric>
 
 // benchmarking: measuring time
 double wall_time(){
@@ -89,12 +90,15 @@ void print_matrix(const double * matrix, size_t num_rows, size_t num_cols, FILE 
 double dot(const double * x, const double * y, size_t size)
 {
     double result = 0.0;
-    #pragma omp parallel for default(none) reduction(+:result) shared(x, y, size) // this might have no impact on the performance
+    // #pragma omp parallel for default(none) reduction(+:result) shared(x, y, size) // this might have no impact on the performance
     for(size_t i = 0; i < size; i++)
     {
         result += x[i] * y[i];
     }
     return result;
+    
+    // Also a possibility
+    // return std::inner_product(x, x+size, y, 0.0);
 }
 
 
@@ -102,7 +106,7 @@ double dot(const double * x, const double * y, size_t size)
 void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 {
     // y = alpha * x + beta * y
-    #pragma omp parallel for default(none) shared(alpha, x, beta, y, size)
+    // #pragma omp parallel for default(none) shared(alpha, x, beta, y, size)
     for(size_t i = 0; i < size; i++)
     {
         y[i] = alpha * x[i] + beta * y[i];
@@ -114,6 +118,7 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols)
 {
     // y = alpha * A * x + beta * y;
+    // parallelizing this for-loop is the most important and has the most significant impact on performance
     #pragma omp parallel for simd shared(alpha, A, x, beta, y, num_rows, num_cols) // or use collapse
     for(size_t r = 0; r < num_rows; r++)
     {
