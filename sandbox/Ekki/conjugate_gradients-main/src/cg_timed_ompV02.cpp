@@ -90,7 +90,7 @@ void print_matrix(const double * matrix, size_t num_rows, size_t num_cols, FILE 
 double dot(const double * x, const double * y, size_t size)
 {
     double result = 0.0;
-    // #pragma omp parallel for default(none) reduction(+:result) shared(x, y, size) // this might have no impact on the performance
+    #pragma omp parallel for default(none) reduction(+:result) shared(x, y, size) // this might have no impact on the performance
     for(size_t i = 0; i < size; i++)
     {
         result += x[i] * y[i];
@@ -99,6 +99,21 @@ double dot(const double * x, const double * y, size_t size)
     
     // Also a possibility
     // return std::inner_product(x, x+size, y, 0.0);
+
+    // Splitting it among the threads and every thread uses the inner product functionality
+    // #pragma omp parallel default(none) reduction(+:result) shared(x, y, size)
+    // {
+    //     int num_threads = omp_get_num_threads();
+    //     int my_tid = omp_get_thread_num();
+    //     int num_items = size/num_threads;
+    //     int my_start = my_tid * num_items;
+    //     int my_end = my_start + num_items;
+    //     if (my_tid == num_threads-1){
+    //         my_end = size;
+    //     }
+    //     result += std::inner_product(x+my_start, x+my_end, y+my_start, 0.0);
+    // }
+    // return result;
 }
 
 
@@ -106,7 +121,7 @@ double dot(const double * x, const double * y, size_t size)
 void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 {
     // y = alpha * x + beta * y
-    // #pragma omp parallel for default(none) shared(alpha, x, beta, y, size)
+    #pragma omp parallel for default(none) shared(alpha, x, beta, y, size)
     for(size_t i = 0; i < size; i++)
     {
         y[i] = alpha * x[i] + beta * y[i];
@@ -119,15 +134,36 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
 {
     // y = alpha * A * x + beta * y;
     // parallelizing this for-loop is the most important and has the most significant impact on performance
-    #pragma omp parallel for simd shared(alpha, A, x, beta, y, num_rows, num_cols) // or use collapse
-    for(size_t r = 0; r < num_rows; r++)
+    // #pragma omp parallel for simd shared(alpha, A, x, beta, y, num_rows, num_cols) // or use collapse
+    // for(size_t r = 0; r < num_rows; r++)
+    // {
+    //     double y_val = 0.0;
+    //     for(size_t c = 0; c < num_cols; c++)
+    //     {
+    //         y_val += alpha * A[r * num_cols + c] * x[c];
+    //     }
+    //     y[r] = beta * y[r] + y_val;
+    // }
+
+    #pragma omp parallel default(none) shared(alpha, A, x, beta, y, num_rows, num_cols)
     {
-        double y_val = 0.0;
-        for(size_t c = 0; c < num_cols; c++)
-        {
-            y_val += alpha * A[r * num_cols + c] * x[c];
+        int num_threads = omp_get_num_threads();
+        int my_tid = omp_get_thread_num();
+        int num_items = num_rows/num_threads;
+        int my_start = my_tid * num_items;
+        int my_end = my_start + num_items;
+        if (my_tid == num_threads-1){
+            my_end = num_rows;
         }
-        y[r] = beta * y[r] + y_val;
+        for(size_t r = my_start; r < my_end; r++){
+            double y_val = 0.0;
+            // for(size_t c = 0; c < num_cols; c++)
+            // {
+            //     y_val += alpha * A[r * num_cols + c] * x[c];
+            // }
+            y_val = alpha * std::inner_product(A+my_start*num_cols, A+my_start*num_cols+num_cols, x, 0.0);
+            y[r] = beta * y[r] + y_val;
+        }
     }
 }
 
