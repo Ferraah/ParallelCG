@@ -157,11 +157,11 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
         }
         for(size_t r = my_start; r < my_end; r++){
             double y_val = 0.0;
-            // for(size_t c = 0; c < num_cols; c++)
-            // {
-            //     y_val += alpha * A[r * num_cols + c] * x[c];
-            // }
-            y_val = alpha * std::inner_product(A+my_start*num_cols, A+my_start*num_cols+num_cols, x, 0.0);
+            for(size_t c = 0; c < num_cols; c++)
+            {
+                y_val += alpha * A[r * num_cols + c] * x[c];
+            }
+            // y_val = alpha * std::inner_product(A+my_start*num_cols, A+my_start*num_cols+num_cols, x, 0.0);
             y[r] = beta * y[r] + y_val;
         }
     }
@@ -184,6 +184,16 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
         r[i] = b[i];
         p[i] = b[i];
     }
+
+    // Determine the number of threads
+    // int num_threads = 0;
+    // #pragma omp parallel reduction(+:num_threads){
+    //     num_threads += 1;
+    // }
+    // int num_threads = 1;
+    // #pragma omp parallel{
+    //     num_threads = omp_get_max_num_threads();
+    // }
 
     bb = dot(b, b, size);
     rr = bb;
@@ -243,7 +253,6 @@ int main(int argc, char ** argv)
     printf("  max_iters:         %d\n", max_iters);
     printf("  rel_error:         %e\n", rel_error);
     printf("\n");
-
 
 
     double * matrix;
