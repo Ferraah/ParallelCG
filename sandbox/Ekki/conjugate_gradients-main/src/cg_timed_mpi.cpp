@@ -137,12 +137,17 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
 
     // Split computation along A and y: e.g.: p1 has rows 1 to num_roms/num_processes
     // Compute remainder for load balancing -> use modulo
-    int my_num_rows = (int)num_rows / num_processes;
-    int my_start = my_rank * my_num_rows;
-    int my_end = my_start + my_num_rows;
-    if (my_rank == num_processes - 1){  // last rank should clean up
+    int rest = num_rows % num_processes;
+    int my_num_rows = (int(num_rows / num_processes));
+    int my_start = -1;
+    int my_end = -1;
+    if (my_rank < rest){ // distribute the rest of the rows across all processes evenly; my_rank starts at 0 & rest at 1 -> <
+        my_num_rows += 1;
         my_start = my_rank * my_num_rows;
-        my_num_rows = num_rows - ((int)num_rows / num_processes) * (num_processes - 1);
+        my_end = my_start + my_num_rows;
+    }
+    else {
+        my_start = my_rank * my_num_rows + rest;
         my_end = my_start + my_num_rows;
     }
 
@@ -179,13 +184,20 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     int num_iters;
 
     // Displacement and counts for MPI_Allgatherv
+
     int displacements[num_processes];
     int counts[num_processes];
     for (int i = 0; i < num_processes; i++){
-        displacements[i] = ((int)(size / num_processes)) * i;
-        counts[i] = ((int)(size / num_processes));
-        if (rank == num_processes - 1){  // last rank should clean up
-        counts[i] = size - ((int)(size / num_processes)) * (num_processes - 1);
+        int rest = size % num_processes;
+        int my_num_rows = (int(size / num_processes));
+        if (i < rest){ 
+            my_num_rows += 1;
+            displacements[i] = my_num_rows * i;
+            counts[i] = my_num_rows;
+        }
+        else {
+            displacements[i] = my_num_rows * i + rest;
+            counts[i] = my_num_rows;
         }
     }
 
