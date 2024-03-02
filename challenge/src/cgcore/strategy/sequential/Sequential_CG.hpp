@@ -11,7 +11,7 @@ namespace cgcore{
         public: 
             void run(const double * , const double * , double * , size_t , int , double ) const ;
 
-        private: 
+        //private: // For debugging 
             double dot(const double * x, const double * y, size_t size) const;
             void axpby(double alpha, const double * x, double beta, double * y, size_t size) const;
             void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols) const;

@@ -21,7 +21,7 @@ set_property(CACHE CMAKE_BUILD_TYPE PROPERTY
 
 # Set compiler flags for different build types
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Wall -Wextra")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+#set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 # Add an option for enabling fast math
 option(USE_FAST_MATH "Enable fast math optimizations." OFF)

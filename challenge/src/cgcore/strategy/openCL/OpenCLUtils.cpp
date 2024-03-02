@@ -9,26 +9,28 @@ namespace cgcore{
     //  Create an OpenCL context on the first available platform using
     //  either a GPU or CPU depending on what is available.
     //
-    cl_context OpenCLUtils::CreateContext()
+    cl_context OpenCLUtils::CreateContext(cl_device_id &device, cl_context &context)
     {
-        cl_int errNum;
+        cl_int err_num;
         cl_uint numPlatforms;
         cl_platform_id platformIds[2];
         cl_platform_id selected_platform;
-        cl_context context = NULL;
+        context = NULL;
 
         // First, select an OpenCL platform to run on.  For this example, we
         // simply choose the first available platform.  Normally, you would
         // query for all available platforms and select the most appropriate one.
-        std::cerr << "TEST" << std::endl;
-        errNum = clGetPlatformIDs(2, platformIds, &numPlatforms);
+        std::cout << "Fetching platforms..";
+        err_num = clGetPlatformIDs(2, platformIds, &numPlatforms);
 
         std::cerr << "OpenCL platforms found" << std::endl;
-        if (errNum != CL_SUCCESS || numPlatforms <= 0)
+        if (err_num != CL_SUCCESS || numPlatforms <= 0)
         {
             std::cerr << "Failed to find any OpenCL platforms." << std::endl;
             return NULL;
         }
+        
+        std::cout << "Number of available platforms: " << numPlatforms << std::endl; 
         selected_platform = platformIds[1];
 
         // Next, create an OpenCL context on the platform.  Attempt to
@@ -40,18 +42,25 @@ namespace cgcore{
             (cl_context_properties)selected_platform,
             0
         };
+
         context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU,
-                                        NULL, NULL, &errNum);
-        if (errNum != CL_SUCCESS)
+                                        NULL, NULL, &err_num);
+        if (err_num != CL_SUCCESS)
         {
             std::cout << "Could not create GPU context, trying CPU..." << std::endl;
             context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_CPU,
-                                            NULL, NULL, &errNum);
-            if (errNum != CL_SUCCESS)
+                                            NULL, NULL, &err_num);
+
+            err_num = clGetDeviceIDs(selected_platform, CL_DEVICE_TYPE_CPU, 1, &device, NULL);
+
+            if (err_num!= CL_SUCCESS)
             {
                 std::cerr << "Failed to create an OpenCL GPU or CPU context." << std::endl;
                 return NULL;
             }
+        }else{
+            std::cout << "GPU context created. " << std::endl;
+            err_num = clGetDeviceIDs(selected_platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL);
         }
 
         return context;
@@ -356,5 +365,48 @@ namespace cgcore{
         if (context != 0)
             clReleaseContext(context);
 
+    }
+
+    // wait until all queued tasks have taken place:
+    void OpenCLUtils::Wait( cl_command_queue queue )
+    {
+        cl_event wait;
+        cl_int status;
+
+        status = clEnqueueMarker( queue, &wait );
+
+        if( status != CL_SUCCESS )
+            fprintf( stderr, "Wait: clEnqueueMarker failed\n" );
+
+        status = clWaitForEvents( 1, &wait ); // blocks until everything is done
+        
+        if( status != CL_SUCCESS )
+            fprintf( stderr, "Wait: clWaitForEvents failed\n" );
+    }
+
+    void OpenCLUtils::InitializeProgram(const char * kernel_source_path, const char * kernel_binary_path, cl_program &program, cl_device_id &device, cl_context &context){
+
+        // Create OpenCL program - first attempt to load cached binary.
+        //  If that is not available, then create the program from source
+        //  and store the binary for future use.
+        std::cout << "Attempting to create program from binary..." << std::endl;
+        program = CreateProgramFromBinary(context, device, kernel_binary_path) ;
+        if (program == NULL)
+        {
+            std::cout << "Binary not loaded, create from source..." << std::endl;
+            program = CreateProgram(context, device, kernel_source_path);
+
+            assert(program != NULL);
+
+            std::cout << "Save program binary for future run..." << std::endl;
+            if (SaveProgramBinary(program, device, kernel_binary_path) == false)
+            {
+                std::cerr << "Failed to write program binary" << std::endl;
+            }
+        }
+        else
+        {
+            std::cout << "Read program from binary." << std::endl;
+        }
     }
 }

@@ -1,5 +1,4 @@
 #include "../challenge/include/cg/cgcore.hpp"
-#include <CL/cl.h>
 
 using namespace cgcore;
 
@@ -9,23 +8,26 @@ int main(int argc, char ** argv){
     double *vector;
     double *x;
     size_t n, m ; 
-    int max_iter = 100;
+    int max_iter = 1000;
     double res = 1.e-6;
 
-    CGSolver<OpenCL> solver;
+    CGSolver<OpenCL_CG> solver;
 
+    const char *m_path =  "../test/assets/matrix_1000.bin";
+    const char *rhs_path =  "../test/assets/rhs_1000.bin";
+
+    utils::read_matrix_from_file(m_path , matrix, n, m);
+    utils::read_vector_from_file(rhs_path, vector, n);
+    std::cout << n << std::endl;
     x = new double[n];
-    const char *path =  "../test/assets/matrix.bin";
-    utils::read_matrix_from_file(path , matrix, n, m);
-    utils::create_vector(vector, n, 20);
-    utils::print_matrix(matrix, n, n);
-    utils::print_matrix(vector, 1, n);
+    //utils::print_matrix(matrix, n, n);
+    //utils::print_matrix(vector, 1, n);
 
 
-    OpenCLUtils::CreateContext();
     
     solver.solve(matrix, vector, x, n, max_iter, res);
 
+    //utils::print_matrix(x, 1, n);
     delete [] matrix;
     delete [] vector;
     delete [] x;

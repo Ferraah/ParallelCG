@@ -1,5 +1,5 @@
 
-#include "Sequential.hpp"
+#include "Sequential_CG.hpp"
 
 namespace cgcore{
     
@@ -74,7 +74,7 @@ namespace cgcore{
             axpby(alpha, p, 1.0, x, size);
             axpby(-alpha, Ap, 1.0, r, size);
             rr_new = dot(r, r, size);
-            std::cout << r[0] << std::endl;
+            //std::cout << r[0] << std::endl;
             beta = rr_new / rr;
             rr = rr_new;
 
