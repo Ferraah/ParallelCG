@@ -5,17 +5,19 @@
 # The benchmarking results are stored in cg_bench_omp_Xthreads.txt
 
 # Number of threads
-ts=(1 2 3 4 5 6 7 8 9 10)
+ts=(1 2 4 8)
+#ts=(1 2 4 8 16 32 64)
 
 module load intel
-icpx -O2 -fopenmp src/cg_timed_omp.cpp -o cg_timed_omp
+icpx -O2 -fopenmp src/cg_timed_ompV02.cpp -o cg_timed_ompV02
+# icpx -O2 or g++
 ./random_spd_system.sh 10000 io/matrix.bin io/rhs.bin
 echo "threads   matrix_size   time" > cg_bench_omp_fixM.txt
 
 for i in "${ts[@]}"
     do
     export OMP_NUM_THREADS=$i # for example
-    ./cg_timed_omp io/matrix.bin io/rhs.bin io/sol.bin
+    ./cg_timed_ompV02 io/matrix.bin io/rhs.bin io/sol.bin
     temp_path='io/temp.txt'
     n=1
     while read line; do
