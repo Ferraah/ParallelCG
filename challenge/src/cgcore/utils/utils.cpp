@@ -130,3 +130,115 @@ void utils::print_matrix(const double * matrix, size_t num_rows, size_t num_cols
         printf("\n");
     }
 }
+
+bool utils::mpi::mpi_distributed_read_matrix(const char* filename, double* matrix, size_t& rows, size_t& cols, int* rows_per_process, int* displacements)
+{
+    int init_flag;
+    MPI_Initialized(&init_flag );
+    assert(init_flag && "ERROR: MPI WAS NOT INITIALIZED.");
+
+    int rank;
+    int size;
+    
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    MPI_File file;
+    MPI_Offset offset;
+    MPI_Status status;
+
+    size_t header[2];
+
+    if(MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_RDONLY, MPI_INFO_NULL, &file) != MPI_SUCCESS)
+    {
+        return false;
+    }
+
+    // First each process reads the header of the file to get the 
+    MPI_File_read_at_all(file, 0, header, 2, MPI_UNSIGNED_LONG_LONG, &status);
+    rows = header[0];
+    cols = header[1];
+
+    // Then the work is spread among all ranks
+    rows_per_process = new int[size];
+    displacements = new int[size];
+
+    for (unsigned int i = 0; i < size; ++i)
+    {
+        rows_per_process[i] = rows / size;
+        if (i < rows % size)
+        {
+            rows_per_process[i]++;
+        }
+    }
+
+    displacements[0] = 0;
+    for (unsigned int i = 1; i < size; ++i)
+    {
+        displacements[i] = displacements[i-1] + rows_per_process[i-1];
+    }
+
+    // Finally, compute the offset and read data from the file
+    matrix = new double[rows_per_process[rank] * cols];
+
+    offset = FILE_HEADER_SIZE + displacements[rank] * cols * sizeof(double);
+    MPI_File_read_at_all(file, offset, matrix, rows_per_process[rank] * cols, MPI_DOUBLE, &status);
+
+    return true;
+}
+
+bool utils::mpi::mpi_distributed_read_all_vector(const char* filename, double* vector, size_t& rows, size_t& cols, int* rows_per_process, int* displacements)
+{
+    int init_flag;
+    MPI_Initialized(&init_flag );
+    assert(init_flag && "ERROR: MPI WAS NOT INITIALIZED.");
+
+    int rank;
+    int size;
+    
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+    MPI_File file;
+    MPI_Offset offset;
+    MPI_Status status;
+
+    size_t header[2];
+
+    if(MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_RDONLY, MPI_INFO_NULL, &file) != MPI_SUCCESS)
+    {
+        return false;
+    }
+
+    // First each process reads the header of the file to get the 
+    MPI_File_read_at_all(file, 0, header, 2, MPI_UNSIGNED_LONG_LONG, &status);
+    rows = header[0];
+    cols = header[1];
+
+    // Then the work is spread among all ranks
+    rows_per_process = new int[size];
+    displacements = new int[size];
+
+    for (unsigned int i = 0; i < size; ++i)
+    {
+        rows_per_process[i] = rows / size;
+        if (i < rows % size)
+        {
+            rows_per_process[i]++;
+        }
+    }
+
+    displacements[0] = 0;
+    for (unsigned int i = 1; i < size; ++i)
+    {
+        displacements[i] = displacements[i-1] + rows_per_process[i-1];
+    }
+
+
+    // Finally, compute the offset and read data from the file
+    vector = new double[rows];
+    offset = FILE_HEADER_SIZE;
+    MPI_File_read_at_all(file, offset, vector, rows, MPI_DOUBLE, &status);
+
+    return true;
+}
