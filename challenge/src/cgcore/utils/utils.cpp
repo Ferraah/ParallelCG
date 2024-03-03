@@ -183,7 +183,7 @@ bool utils::mpi::mpi_distributed_read_matrix(const char* filename, double* matri
 
     offset = FILE_HEADER_SIZE + displacements[rank] * cols * sizeof(double);
     MPI_File_read_at_all(file, offset, matrix, rows_per_process[rank] * cols, MPI_DOUBLE, &status);
-
+    MPI_File_close(&file);
     return true;
 }
 
@@ -239,6 +239,6 @@ bool utils::mpi::mpi_distributed_read_all_vector(const char* filename, double* v
     vector = new double[rows];
     offset = FILE_HEADER_SIZE;
     MPI_File_read_at_all(file, offset, vector, rows, MPI_DOUBLE, &status);
-
+    MPI_File_close(&file);
     return true;
 }
