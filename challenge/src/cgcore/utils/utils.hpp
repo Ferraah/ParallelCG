@@ -68,7 +68,7 @@ namespace utils{
          * @param displacements first element (with respect to element 0) associated to a process
          * 
          */
-        void mpi_print_vector(const double* vector, const size_t rows, int* rows_per_process, int* displacements);
+        void mpi_print_vector(const char* filename, const double* vector, const size_t rows, int* rows_per_process, int* displacements);
     }
 }
 
