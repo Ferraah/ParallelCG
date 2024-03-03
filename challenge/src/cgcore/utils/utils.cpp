@@ -242,3 +242,34 @@ bool utils::mpi::mpi_distributed_read_all_vector(const char* filename, double* v
     MPI_File_close(&file);
     return true;
 }
+
+void utils::mpi::mpi_print_vector(const char* filename, const double* vector, const size_t rows, int* rows_per_process, int* displacements)
+{
+    int flag;
+    MPI_Initialized(&flag);
+    assert(flag && "ERROR: MPI WAS NOT INITIALIZED");
+
+    int rank;
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_File file;
+    MPI_Status status;
+    MPI_Offset offset;
+
+    size_t cols = 1;
+    size_t header[] = {rows, cols};
+
+    MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &file);
+    
+    // All useful data has already been computed, so we just need to write the vector to file.
+    // First, start with the header (which is written by rank 0).
+    if (rank == 0)
+    {
+        MPI_File_write(file, header, 2, MPI_UNSIGNED_LONG_LONG, &status);
+    }
+    // Then, considering the necessary offset, each rank writes its data.
+    offset = FILE_HEADER_SIZE + displacements[rank] * sizeof(double);
+    MPI_File_write_at_all(file, offset, vector + displacements[rank], rows_per_process[rank], MPI_DOUBLE, &status);
+
+    MPI_File_close(&file);    
+}

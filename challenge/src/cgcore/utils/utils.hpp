@@ -58,6 +58,17 @@ namespace utils{
          * vectors are initialized in the method.
          */
         bool mpi_distributed_read_all_vector(const char* filename, double* vector, size_t& rows, size_t& cols, int* rows_per_process, int* displacements);
+
+        /**
+         * @brief Prints in parallel a global vector, subdividing it in chunks of rows. 
+         * 
+         * @param vector vector to be printed
+         * @param rows number of elements of the vector 
+         * @param rows_per_process number of elements associated to each process
+         * @param displacements first element (with respect to element 0) associated to a process
+         * 
+         */
+        void mpi_print_vector(const double* vector, const size_t rows, int* rows_per_process, int* displacements);
     }
 }
 
