@@ -1,12 +1,12 @@
 
-__kernel void dot_product(global const double *a, global const double *b, local double *prods, global double *c, global const size_t *size){
+__kernel void dot_product(global const double *a, global const double *b, local double *prods, global double *c, const uint size){
 
 
     // Global id 
     int gid = get_global_id(0);
 
     // Number of items per work-group
-    int num_items = get_local_size(1);
+    int num_items = get_local_size(0);
 
     // Id of thread in work-group
     int lid = get_local_id(0);
@@ -15,18 +15,19 @@ __kernel void dot_product(global const double *a, global const double *b, local 
     int wg_num = get_group_id(0);
 
     int num_of_wg = get_num_groups(0);
-
-    if(gid < *size)
+    
+    
+    prods[lid] = 0.0;
+    if(gid < size)
         prods[lid] = a[gid] * b[gid];
-       
+   
     for(int offset = 1; offset < num_items; offset*=2 ){
 
             int mask = 2*offset - 1;
             barrier(CLK_LOCAL_MEM_FENCE);
 
             if((lid & mask ) == 0 ){
-                if((lid+offset) < num_of_wg)
-                    prods[lid] += prods[lid + offset];
+                prods[lid] += prods[lid + offset];
             }
 
     }
@@ -70,3 +71,18 @@ __kernel void A_times_x_kernel(
     }
 }
 
+
+__kernel void vec_sum(
+    const double alpha,
+    global const double *dA,
+    const double beta,
+    global double *dB,
+    const uint size
+){
+    uint gid = get_global_id(0);
+
+    if(gid < size){
+        dB[gid] = alpha*dA[gid] + beta*dB[gid];
+    } 
+
+}

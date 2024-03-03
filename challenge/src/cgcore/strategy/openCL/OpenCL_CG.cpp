@@ -1,6 +1,5 @@
 
 #include "OpenCL_CG.hpp"
-
 #define CHECK_OPENCL_ERROR(err, msg) \
     do { \
         if (err != CL_SUCCESS) { \
@@ -17,24 +16,27 @@
             /*Cleanup(context, commandQueue, program, kernel, memObjects);*/ \
         } \
     } while (0)
+    
 
 namespace cgcore{
     
-
-    double OpenCL_CG::dot(cl_kernel kernel, const cl_mem &dA, const cl_mem &dB,const cl_mem &dS,const double * x, const double * y, size_t size) const 
+    /**
+     * @param kernel The kernel associated to the method
+     * @param dA The reference to the first vector in device memory 
+     * @param dB The reference to the first vector in device memory 
+     * @param size The size of the vectors 
+    */
+    double OpenCL_CG::dot(cl_kernel kernel, const cl_mem &dA, const cl_mem &dB, size_t size) const 
     {
         cl_mem dC;
         cl_int err_num = 0;
 
-        size_t default_local_work_size = 64;
+        size_t default_local_work_size = 1 << 10;
         size_t local_work_size = size < default_local_work_size ? size : default_local_work_size;
-        
-
         
         // Round up division
         size_t num_work_groups = (size + (local_work_size - 1)) / local_work_size;
         size_t global_work_size = num_work_groups * local_work_size; 
-
         size_t vector_size = sizeof(double)*size;
         size_t c_size = sizeof(double)*num_work_groups;
 
@@ -43,35 +45,14 @@ namespace cgcore{
         dC = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 
             c_size, NULL, NULL);
 
-//        double *hC = new double[size];
-
-        //dC = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 
-        //        vector_size, NULL, NULL);
-
         CHECK_NOT_NULL(dC, "Dot: Error dC creation");
 
-        err_num = clEnqueueWriteBuffer(command_queue, dA, CL_FALSE, 0, vector_size, x, 0, NULL, NULL);
-        CHECK_OPENCL_ERROR(err_num,"Dot: Write buffer dA error");
-        err_num = clEnqueueWriteBuffer(command_queue, dB, CL_FALSE, 0, vector_size, y, 0, NULL, NULL);
-        CHECK_OPENCL_ERROR(err_num,"Dot: Write buffer dB error");
-        err_num = clEnqueueWriteBuffer(command_queue, dS, CL_FALSE, 0, sizeof(size_t), &size, 0, NULL, NULL);
-        CHECK_OPENCL_ERROR(err_num,"Dot: Write buffer dS error");
-
-        OpenCLUtils::Wait(command_queue);
-
-
-        err_num = clSetKernelArg(kernel, 0, sizeof(cl_mem), &dA);
+                err_num = clSetKernelArg(kernel, 0, sizeof(cl_mem), &dA);
         err_num |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &dB);
-        err_num |= clSetKernelArg(kernel, 2, vector_size, NULL);
+        err_num |= clSetKernelArg(kernel, 2, local_work_size*sizeof(double), NULL);
         err_num |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &dC);
-        err_num |= clSetKernelArg(kernel, 4, sizeof(size_t), &dS);
+        err_num |= clSetKernelArg(kernel, 4, sizeof(int), &size);
 
-        /*
-        err_num = clSetKernelArg(kernel, 0, sizeof(cl_mem), &dA);
-        err_num |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &dB);
-        err_num |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &dC);
-        err_num |= clSetKernelArg(kernel, 3, sizeof(size_t), &dS);
-        */ 
 
         CHECK_OPENCL_ERROR(err_num, "Dot: Kernel arg errors");
 
@@ -89,10 +70,6 @@ namespace cgcore{
         {
             result_cl += hC[ i ];
         }
-        //std::cout << result_cl << std::endl;
-
-        //utils::print_matrix(x, 1, size);
-        //std::cout << result_cl << std::endl;
 
         CHECK_OPENCL_ERROR(err_num, "Dot: Result read error.");
 
@@ -101,37 +78,71 @@ namespace cgcore{
         return result_cl;
     }
 
-    void OpenCL_CG::axpby(double alpha, const double * x, double beta, double * y, size_t size) const
+    /**
+     * Sum two vector and replace the result as the first addend.
+     * @param kernel OpenCL kernel method 
+     * @param alpha
+     * @param dX Reference to first vector in device memory
+     * @param beta 
+     * @param dY Reference to second vector in device memory
+     * @param size Size of the two vectors
+    */
+    void OpenCL_CG::vec_sum(cl_kernel kernel, double alpha, const cl_mem  &dX, double beta, const cl_mem &dY, size_t size) const
     {
-                // y = alpha * x + beta * y
 
-        for(size_t i = 0; i < size; i++)
-        {
-            y[i] = alpha * x[i] + beta * y[i];
-        }
+        cl_int err_num = 0;
+
+        size_t default_local_work_size = 1 << 10;
+        size_t local_work_size = size < default_local_work_size ? size : default_local_work_size;
+        
+        // Round up division
+        size_t num_work_groups = (size + (local_work_size - 1)) / local_work_size;
+        size_t global_work_size = num_work_groups * local_work_size; 
+
+        err_num = clSetKernelArg(kernel, 0, sizeof(double), &alpha);
+        err_num |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &dX);
+        err_num |= clSetKernelArg(kernel, 2, sizeof(double), &beta);
+        err_num |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &dY);
+        err_num |= clSetKernelArg(kernel, 4, sizeof(int), &size);
+
+        CHECK_OPENCL_ERROR(err_num, "Mvm: Kernel arg errors");
+
+        err_num = clEnqueueNDRangeKernel(command_queue, kernel, 1, NULL, &global_work_size, &local_work_size, 0, NULL, NULL);
+
+        CHECK_OPENCL_ERROR(err_num, "Mvm: Kernel error.");
+
+        OpenCLUtils::Wait(command_queue);
     }
 
 
     void OpenCL_CG::load_matrix_to_device(const cl_mem &dA, const double *A, size_t n) const{
-        cl_int err_num = clEnqueueWriteBuffer(command_queue, dA, CL_FALSE, 0, sizeof(double)*n*n, A, 0, NULL, NULL);
+        cl_int err_num = clEnqueueWriteBuffer(command_queue, dA, CL_TRUE, 0, sizeof(double)*n*n, A, 0, NULL, NULL);
         CHECK_OPENCL_ERROR(err_num,"laod_matrix_to_device: Write buffer dA error");
+    }
+
+    void OpenCL_CG::load_vector_to_device(const cl_mem &dB, const double *b, size_t n) const{
+        cl_int err_num = clEnqueueWriteBuffer(command_queue, dB, CL_TRUE, 0, sizeof(double)*n, b, 0, NULL, NULL);
+        CHECK_OPENCL_ERROR(err_num,"load_vector_to_device: Write buffer dB error");
+    }
+
+    void OpenCL_CG::load_vector_to_host(double *b, const cl_mem &dB, size_t n) const{
+        cl_int err_num = clEnqueueReadBuffer(command_queue, dB, CL_TRUE, 0, sizeof(double)*n, b, 0, NULL, NULL);
+        CHECK_OPENCL_ERROR(err_num,"read_vector_to_host: error");
     }
 
     /**
      * Run the matrix vector multiplication on the selected device. 
+     * @param kernel the kernel associated to the method
+     * @param dA the device pointer to the matrix A, already loaded in device memory. 
+     * @param dB the device pointer to the vector b, already loaded in device memory.
+     * @param dC the device pointer to the result c, in device memory.
      * 
      * @TODO: Remove A parameter
     */
-    void OpenCL_CG::matrix_vector_mul(cl_kernel kernel, const cl_mem &dA,const cl_mem &dB,const cl_mem &dC,const double * A, double * x, double * y, size_t size) const
+    void OpenCL_CG::matrix_vector_mul(cl_kernel kernel, const cl_mem &dA,const cl_mem &dB,const cl_mem &dC, size_t size) const
     {
         cl_int err_num = 0;
 
-        /*
-        size_t max_local_size = 0; 
-        clGetKernelWorkGroupInfo(kernel, device, CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &max_local_size, NULL);
-        std::cout << "Max: " << max_local_size << std::endl; 
-        */ 
-       
         size_t local_work_size = 1 << 10;
         
         // Round up division
@@ -142,12 +153,6 @@ namespace cgcore{
         size_t vector_size = sizeof(double)*size;
 
         // Matrix has been already loaded
-
-        err_num = clEnqueueWriteBuffer(command_queue, dB, CL_FALSE , 0, vector_size , x, 0, NULL, NULL);
-        CHECK_OPENCL_ERROR(err_num,"Mvm: Write buffer dB error");
-
-        OpenCLUtils::Wait(command_queue);
-        
 
         err_num = clSetKernelArg(kernel, 0, sizeof(cl_mem), &dA);
         err_num |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &dB);
@@ -163,12 +168,6 @@ namespace cgcore{
 
         OpenCLUtils::Wait(command_queue);
 
-        err_num = clEnqueueReadBuffer(command_queue, dC, CL_TRUE, 0, vector_size, 
-           y, 0, NULL, NULL);
-
-
-        CHECK_OPENCL_ERROR(err_num, "Mvm: Result read error.");
-
     }
 
     OpenCL_CG::OpenCL_CG(){
@@ -177,97 +176,111 @@ namespace cgcore{
         const char * source_path = "/home/users/u101373/ParallelCG/challenge/src/cgcore/strategy/openCL/kernels.cl";
         const char * binary_path = "kernels.cl.bin";
 
-        //Create device and context 
-        OpenCLUtils::CreateContext(device, context);
-            
-        // Create a context  
-        context = clCreateContext(0, 1, &device, NULL, NULL, &err_num);
-
-        CHECK_NOT_NULL(context, "Context is null.");
-
-        // Create a command queue 
-        command_queue = clCreateCommandQueue(context, device, 0, &err_num);
-    
-        CHECK_NOT_NULL(command_queue, "Command queue is null.");
-
+        OpenCLUtils::InitializePlatforms(device, context, command_queue);
         OpenCLUtils::InitializeProgram(source_path, binary_path, program, device, context);
- 
-        CHECK_NOT_NULL(program, "Program is null.");
+        assert(device != NULL);
+        assert(context != NULL);
+        assert(command_queue != NULL);
+        assert(program != NULL);
     }
+
     /**
-     * 
+     * Main method for the strategy 
     */ 
     void OpenCL_CG::conjugate_gradient(const double * A, const double * b, double * x, size_t size, int max_iters, double rel_error) const
     {
 
-        
-        assert(program != NULL);
-
+        // Prepare the kernels from loaded program 
         cl_kernel dot_kernel = clCreateKernel(program, "dot_product", NULL);
-        CHECK_NOT_NULL(dot_kernel, "Error dot product kernel creation");
-        cl_kernel gemv_kernel = clCreateKernel(program, "A_times_x_kernel", NULL);
-        CHECK_NOT_NULL(gemv_kernel, "Error matrix-vector mult. kernel creation");
+        cl_kernel mvm_kernel = clCreateKernel(program, "A_times_x_kernel", NULL);
+        cl_kernel vs_kernel = clCreateKernel(program, "vec_sum", NULL);
+        assert(dot_product != NULL);
+        assert(mvm_product != NULL);
+        assert(vs_product != NULL);
+        // 
 
-        // Kernel buffers ------------------------------
+        // Allocate buffers in device memory
         size_t matrix_size = sizeof(double)*size*size;
         size_t vector_size = sizeof(double)*size;
 
-        cl_mem dA_dot = clCreateBuffer(context, CL_MEM_READ_ONLY, 
+        // Device memory --------------------------------------- 
+
+        // Matrix A
+        cl_mem dA = clCreateBuffer(context, CL_MEM_READ_ONLY, 
             matrix_size , NULL, NULL);
-        cl_mem dB_dot = clCreateBuffer(context, CL_MEM_READ_ONLY , 
+
+        // Generic vectors of size len
+        cl_mem d_Ad = clCreateBuffer(context, CL_MEM_READ_ONLY , 
             vector_size , NULL, NULL);
-        cl_mem dS_dot = clCreateBuffer(context, CL_MEM_WRITE_ONLY, 
-            sizeof(size_t), NULL, NULL);
+        cl_mem d_d = clCreateBuffer(context, CL_MEM_READ_ONLY , 
+            vector_size , NULL, NULL);
+        cl_mem d_r = clCreateBuffer(context, CL_MEM_READ_ONLY , 
+            vector_size , NULL, NULL);
+        cl_mem d_x = clCreateBuffer(context, CL_MEM_READ_ONLY , 
+            vector_size , NULL, NULL);
+        cl_mem d_b = clCreateBuffer(context, CL_MEM_READ_ONLY , 
+            vector_size , NULL, NULL);
 
-        cl_mem dA_mvm = clCreateBuffer(context, CL_MEM_READ_ONLY, 
-            matrix_size, NULL, NULL);
-        cl_mem dB_mvm  = clCreateBuffer(context, CL_MEM_READ_ONLY , 
-            vector_size, NULL, NULL);
-        cl_mem dC_mvm  = clCreateBuffer(context, CL_MEM_READ_ONLY , 
-            vector_size, NULL, NULL);
+        // ----------------------------------------------------
 
-        // -------------------------------------------- 
+        double alpha, beta;
+        double rr, bb;  // To check relative error
 
-        double alpha, beta, bb, rr, rr_new;
+        // Starting conditions
         double * r = new double[size];
-        double * p = new double[size];
-        double * Ap = new double[size];
+        double * d = new double[size];
+
         int num_iters;
 
         for(size_t i = 0; i < size; i++)
         {
             x[i] = 0.0;
             r[i] = b[i];
-            p[i] = b[i];
+            d[i] = b[i];
         }
 
-        bb = dot(dot_kernel, dA_dot, dB_dot, dS_dot, b, b, size);
-    
-        rr = bb;
-        for(num_iters = 1; num_iters <= max_iters; num_iters++)
-        {
-            matrix_vector_mul(gemv_kernel, dA_mvm, dB_mvm, dC_mvm, A, p, Ap, size);
-            alpha = rr / dot(dot_kernel, dA_dot, dB_dot, dS_dot, p, Ap, size);
-            axpby(alpha, p, 1.0, x, size);
-            axpby(-alpha, Ap, 1.0, r, size);
-            rr_new = dot(dot_kernel, dA_dot, dB_dot, dS_dot, r, r, size);
-            beta = rr_new / rr;
-            rr = rr_new;
+        // One time only
+        load_matrix_to_device(dA, A, size);
 
+        // To check residual  
+        load_vector_to_device(d_b, b, size);
+
+        bb = dot(dot_kernel, d_b, d_b, size);
+
+        load_vector_to_device(d_d, d, size);
+        load_vector_to_device(d_r, r, size);
+        load_vector_to_device(d_x, x, size);
+
+        for(num_iters = 1; num_iters <= max_iters; num_iters++){
+
+            // Calculating A*d
+            matrix_vector_mul(mvm_kernel, dA, d_d, d_Ad, size);
+
+            // Calculating alpha = d*r / (Ad * d)
+            alpha = dot(dot_kernel, d_d, d_r, size)/(double)dot(dot_kernel, d_Ad, d_d, size);
+
+            // Updating x along d
+            vec_sum(vs_kernel, alpha, d_d, 1.0, d_x, size);
+
+            // Updating r
+            vec_sum(vs_kernel, -alpha, d_Ad, 1.0, d_r, size);
+
+            // Calculating Beta
+            beta = dot(dot_kernel, d_Ad, d_r, size)/(double) dot(dot_kernel, d_Ad, d_d, size);
+
+            // Updating d
+            vec_sum(vs_kernel, 1.0, d_r, -beta, d_d, size);
+
+            // Checking residual conditions
+            rr = dot(dot_kernel, d_r, d_r, size);
             if(std::sqrt(rr / bb) < rel_error) { break; }
-            axpby(1.0, r, beta, p, size);
+
         }
 
-        delete[] r;
-        delete[] p;
-        delete[] Ap;
+        load_vector_to_host(x, d_x, size);
 
-        clReleaseMemObject(dA_dot);
-        clReleaseMemObject(dB_dot);
-        clReleaseMemObject(dS_dot);
-        clReleaseMemObject(dA_mvm);
-        clReleaseMemObject(dB_mvm);
-        clReleaseMemObject(dC_mvm);
+        delete [] d;
+        delete [] r;
 
         if(num_iters <= max_iters)
         {
@@ -277,8 +290,19 @@ namespace cgcore{
         {
             printf("Did not converge in %d iterations, relative error is %e\n", max_iters, std::sqrt(rr / bb));
         }
+
+        clReleaseMemObject(dA);
+        clReleaseMemObject(d_x);
+        clReleaseMemObject(d_r);
+        clReleaseMemObject(d_d);
+        clReleaseMemObject(d_b);
+        clReleaseMemObject(d_Ad);
+
     }
 
+    /**
+     * Common strategy interface.
+    */
     void OpenCL_CG::run(const double * A , const double * b, double * x, size_t size, int max_iter, double res_error) const {
         conjugate_gradient(A, b, x, size, max_iter, res_error);
     }

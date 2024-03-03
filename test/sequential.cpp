@@ -13,8 +13,9 @@ int main(int argc, char ** argv){
 
     CGSolver<Sequential> solver;
 
-    const char *m_path =  "../test/assets/matrix.bin";
-    const char *rhs_path =  "../test/assets/rhs.bin";
+    const char *m_path =  "../test/assets/matrix_5000.bin";
+    const char *rhs_path =  "../test/assets/rhs_5000.bin";
+
     utils::read_matrix_from_file(m_path , matrix, n, m);
     utils::read_vector_from_file(rhs_path, vector, n);
     std::cout << n << std::endl;

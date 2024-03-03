@@ -94,6 +94,7 @@ namespace cgcore{
         {
             printf("Did not converge in %d iterations, relative error is %e\n", max_iters, std::sqrt(rr / bb));
         }
+        
     }
     
 }

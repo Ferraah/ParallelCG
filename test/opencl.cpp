@@ -13,8 +13,8 @@ int main(int argc, char ** argv){
 
     CGSolver<OpenCL_CG> solver;
 
-    const char *m_path =  "../test/assets/matrix_1000.bin";
-    const char *rhs_path =  "../test/assets/rhs_1000.bin";
+    const char *m_path =  "../test/assets/matrix_5000.bin";
+    const char *rhs_path =  "../test/assets/rhs_5000.bin";
 
     utils::read_matrix_from_file(m_path , matrix, n, m);
     utils::read_vector_from_file(rhs_path, vector, n);

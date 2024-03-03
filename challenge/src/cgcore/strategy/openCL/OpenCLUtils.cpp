@@ -5,12 +5,12 @@
 
 
 namespace cgcore{
-    ///
-    //  Create an OpenCL context on the first available platform using
-    //  either a GPU or CPU depending on what is available.
-    //
-    cl_context OpenCLUtils::CreateContext(cl_device_id &device, cl_context &context)
-    {
+
+    /**
+     * Initialize the platfor and the context on which the kernels will be executed. 
+    */
+    void OpenCLUtils::InitializePlatforms(cl_device_id &device, cl_context &context, cl_command_queue &command_queue){
+
         cl_int err_num;
         cl_uint numPlatforms;
         cl_platform_id platformIds[2];
@@ -27,7 +27,7 @@ namespace cgcore{
         if (err_num != CL_SUCCESS || numPlatforms <= 0)
         {
             std::cerr << "Failed to find any OpenCL platforms." << std::endl;
-            return NULL;
+          
         }
         
         std::cout << "Number of available platforms: " << numPlatforms << std::endl; 
@@ -56,70 +56,23 @@ namespace cgcore{
             if (err_num!= CL_SUCCESS)
             {
                 std::cerr << "Failed to create an OpenCL GPU or CPU context." << std::endl;
-                return NULL;
+                
             }
         }else{
             std::cout << "GPU context created. " << std::endl;
             err_num = clGetDeviceIDs(selected_platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL);
         }
 
-        return context;
+        // Create a command queue 
+        command_queue = clCreateCommandQueue(context, device, 0, &err_num);
+        if(err_num != CL_SUCCESS){
+            std::cerr << "Failed to create command queue.";
+        }
     }
 
-    ///
-    //  Create a command queue on the first device available on the
-    //  context
-    //
-    cl_command_queue OpenCLUtils::CreateCommandQueue(cl_context context, cl_device_id *device)
-    {
-        cl_int errNum;
-        cl_device_id *devices;
-        cl_command_queue commandQueue = NULL;
-        size_t deviceBufferSize = -1;
-
-        // First get the size of the devices buffer
-        errNum = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &deviceBufferSize);
-        if (errNum != CL_SUCCESS)
-        {
-            std::cerr << "Failed call to clGetContextInfo(...,GL_CONTEXT_DEVICES,...)";
-            return NULL;
-        }
-
-        if (deviceBufferSize <= 0)
-        {
-            std::cerr << "No devices available.";
-            return NULL;
-        }
-
-        // Allocate memory for the devices buffer
-        devices = new cl_device_id[deviceBufferSize / sizeof(cl_device_id)];
-        errNum = clGetContextInfo(context, CL_CONTEXT_DEVICES, deviceBufferSize, devices, NULL);
-        if (errNum != CL_SUCCESS)
-        {
-            delete [] devices;
-            std::cerr << "Failed to get device IDs";
-            return NULL;
-        }
-
-        // In this example, we just choose the first available device.  In a
-        // real program, you would likely use all available devices or choose
-        // the highest performance device based on OpenCL device queries
-        commandQueue = clCreateCommandQueue(context, devices[0], 0, NULL);
-        if (commandQueue == NULL)
-        {
-            delete [] devices;
-            std::cerr << "Failed to create commandQueue for device 0";
-            return NULL;
-        }
-
-        *device = devices[0];
-        delete [] devices;
-        return commandQueue;
-    }
-
-    ///
-    //  Create an OpenCL program from the kernel source file
-    //
+    /**
+     * Create a program not yet saved on a binary file. 
+    */
     cl_program OpenCLUtils::CreateProgram(cl_context context, cl_device_id device, const char* fileName)
     {
         cl_int errNum;
@@ -163,10 +116,9 @@ namespace cgcore{
         return program;
     }
 
-    ///
-    //  Attempt to create the program object from a cached binary.  Note that
-    //  on first run this will fail because the binary has not yet been created.
-    //
+    /**
+     * Create a program, loading the binary from file. 
+    */
     cl_program OpenCLUtils::CreateProgramFromBinary(cl_context context, cl_device_id device, const char* fileName)
     {
         FILE *fp = fopen(fileName, "rb");
@@ -226,11 +178,9 @@ namespace cgcore{
         return program;
     }
 
-    //
-    ///
-    //  Retreive program binary for all of the devices attached to the
-    //  program an and store the one for the device passed in
-    //
+    /**
+     * Save the created binary of the kernel file for future runs.
+    */
     bool OpenCLUtils::SaveProgramBinary(cl_program program, cl_device_id device, const char* fileName)
     {
         cl_uint numDevices = 0;
@@ -318,54 +268,6 @@ namespace cgcore{
         return true;
     }
 
-    ///
-    //  Create memory objects used as the arguments to the kernel
-    //  The kernel takes three arguments: result (output), a (input),
-    //  and b (input)
-    //
-    bool OpenCLUtils::CreateMemObjects(cl_context context, cl_mem memObjects[3],
-                        float *a, float *b, size_t size)
-    {
-        
-        memObjects[0] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    sizeof(float) * size , a, NULL);
-        memObjects[1] = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                    sizeof(float) * size , b, NULL);
-        memObjects[2] = clCreateBuffer(context, CL_MEM_READ_WRITE,
-                                    sizeof(float) * size , NULL, NULL);
-        if (memObjects[0] == NULL || memObjects[1] == NULL || memObjects[2] == NULL)
-        {
-            std::cerr << "Error creating memory objects." << std::endl;
-            return false;
-        }
-
-        return true;
-    }
-
-    ///
-    //  Cleanup any created OpenCL resources
-    //
-    void OpenCLUtils::Cleanup(cl_context context, cl_command_queue commandQueue,
-                cl_program program, cl_kernel kernel, cl_mem memObjects[3])
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            if (memObjects[i] != 0)
-                clReleaseMemObject(memObjects[i]);
-        }
-        if (commandQueue != 0)
-            clReleaseCommandQueue(commandQueue);
-
-        if (kernel != 0)
-            clReleaseKernel(kernel);
-
-        if (program != 0)
-            clReleaseProgram(program);
-
-        if (context != 0)
-            clReleaseContext(context);
-
-    }
 
     // wait until all queued tasks have taken place:
     void OpenCLUtils::Wait( cl_command_queue queue )
