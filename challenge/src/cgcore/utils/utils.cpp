@@ -131,7 +131,7 @@ void utils::print_matrix(const double * matrix, size_t num_rows, size_t num_cols
     }
 }
 
-bool utils::mpi::mpi_distributed_read_matrix(const char* filename, double* matrix, size_t& rows, size_t& cols, int* rows_per_process, int* displacements)
+bool utils::mpi::mpi_distributed_read_matrix(const char* filename, double* matrix, size_t& rows, size_t& cols, int*& rows_per_process, int*& displacements)
 {
     int init_flag;
     MPI_Initialized(&init_flag );
@@ -187,7 +187,7 @@ bool utils::mpi::mpi_distributed_read_matrix(const char* filename, double* matri
     return true;
 }
 
-bool utils::mpi::mpi_distributed_read_all_vector(const char* filename, double* vector, size_t& rows, size_t& cols, int* rows_per_process, int* displacements)
+bool utils::mpi::mpi_distributed_read_all_vector(const char* filename, double* vector, size_t& rows, size_t& cols, int*& rows_per_process, int*& displacements)
 {
     int init_flag;
     MPI_Initialized(&init_flag );

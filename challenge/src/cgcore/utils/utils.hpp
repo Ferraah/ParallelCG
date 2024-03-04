@@ -39,7 +39,7 @@ namespace utils{
          * @note It is assumed that MPI was correctly initialized. Additionally, the matrix, displacements and rows
          * vectors are initialized in the method
          */
-        bool mpi_distributed_read_matrix(const char* filename, double* matrix, size_t& rows, size_t& cols, int* rows_per_process, int* displacements);
+        bool mpi_distributed_read_matrix(const char* filename, double* matrix, size_t& rows, size_t& cols, int*& rows_per_process, int*& displacements);
         
         /**
          * @brief Using MPI parallel IO operations, reads and entire vector from file and computes
@@ -57,7 +57,7 @@ namespace utils{
          * @note It is assumed that MPI was correctly initialized. Additionally, the vector, displacements and rows
          * vectors are initialized in the method.
          */
-        bool mpi_distributed_read_all_vector(const char* filename, double* vector, size_t& rows, size_t& cols, int* rows_per_process, int* displacements);
+        bool mpi_distributed_read_all_vector(const char* filename, double* vector, size_t& rows, size_t& cols, int*& rows_per_process, int*& displacements);
 
         /**
          * @brief Prints in parallel a global vector, subdividing it in chunks of rows. 
