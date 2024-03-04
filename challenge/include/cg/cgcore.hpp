@@ -5,6 +5,9 @@
 #include "../../src/cgcore/strategy/CGStrategy.hpp"
 #include "../../src/cgcore/strategy/sequential/Sequential_CG.hpp"
 #include "../../src/cgcore/strategy/openCL/OpenCL_CG.hpp"
+#include "../../src/cgcore/strategy/openMP/OpenMP_CG.hpp"
+#include "../../src/cgcore/strategy/openMP_BLAS/OpenMP_BLAS_CG.hpp"
+#include "../../src/cgcore/strategy/MPI/MPI_CG.hpp"
 #include "../../src/cgcore/strategy/openCL/OpenCLUtils.hpp"
 
 #include "../../src/cgcore/utils/utils.hpp"

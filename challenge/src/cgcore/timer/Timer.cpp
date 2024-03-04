@@ -52,12 +52,11 @@ namespace cgcore{
         std::cout << "-----------------\n" << std::endl;
     }
 
-    void Timer::print() const{
-       print("");
-    }
-
     double Timer::get_last() const{
-        return _durations.back().count();
+        if(_durations.size() > 0 )
+            return _durations.back().count();
+        else
+            return -1.0; 
     }
 
     double _count(cgcore::Timer::duration dur){

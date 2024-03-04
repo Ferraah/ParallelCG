@@ -1,25 +1,23 @@
- 
-add_executable(sequential sequential.cpp)
-add_executable(opencl opencl.cpp)
-add_executable(micro_benchmark_opencl micro_benchmark_opencl.cpp)
+# Define a macro for setting up an executable
+macro(setup_executable TARGET_NAME SOURCE_FILE)
+    add_executable(${TARGET_NAME} ${SOURCE_FILE})
 
-target_link_libraries(sequential PUBLIC CG_CORE)
-target_include_directories(sequential PUBLIC "${CMAKE_SOURCE_DIR}/challenge/include")
-target_include_directories(sequential PUBLIC /home/users/u101373/OpenCL-CLHPP/include)
-target_include_directories(sequential PUBLIC /home/users/u101373/OpenCL-CLHPP/include)
-target_compile_options(sequential PRIVATE -fsycl -m64 -g)
-target_link_options(sequential PRIVATE -lOpenCL)
+    target_include_directories(${TARGET_NAME} PUBLIC "${CMAKE_SOURCE_DIR}/challenge/include")
+    target_include_directories(${TARGET_NAME} PUBLIC /home/users/u101373/OpenCL-CLHPP/include)
+    target_compile_options(${TARGET_NAME} PRIVATE -fsycl -m64 -g)
 
-target_link_libraries(opencl PUBLIC CG_CORE)
-target_include_directories(opencl PUBLIC "${CMAKE_SOURCE_DIR}/challenge/include")
-target_include_directories(opencl PUBLIC /home/users/u101373/OpenCL-CLHPP/include)
-target_compile_options(opencl PRIVATE -fsycl -m64 -g)
-target_link_options(opencl PRIVATE -lOpenCL)
+    # Link with CG_CORE, 
+    target_link_libraries(${TARGET_NAME} PUBLIC CG_CORE)
+    target_link_options(${TARGET_NAME} PRIVATE -lOpenCL -fopenmp -lopenblas)
+    # Additional settings for MPI
+    target_include_directories(${TARGET_NAME} PUBLIC ${MPI_C_INCLUDE_PATH})
 
-target_link_libraries(micro_benchmark_opencl PUBLIC CG_CORE)
-target_include_directories(micro_benchmark_opencl PUBLIC "${CMAKE_SOURCE_DIR}/challenge/include")
-target_include_directories(micro_benchmark_opencl PUBLIC /home/users/u101373/OpenCL-CLHPP/include)
-target_include_directories(micro_benchmark_opencl PUBLIC /home/users/u101373/OpenCL-CLHPP/include)
-target_compile_options(micro_benchmark_opencl PRIVATE -fsycl -m64 -g)
-target_link_options(micro_benchmark_opencl PRIVATE -lOpenCL)
+endmacro()
 
+# Use the macro for each executable
+setup_executable(sequential sequential.cpp)
+setup_executable(opencl opencl.cpp)
+setup_executable(openmp openmp.cpp)
+setup_executable(mpi mpi.cpp)
+setup_executable(openmp_blas openmp_blas.cpp)
+setup_executable(micro_benchmark_opencl micro_benchmark_opencl.cpp)

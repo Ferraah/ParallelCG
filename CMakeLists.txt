@@ -38,7 +38,8 @@ find_package(MPI REQUIRED)
 cmake_policy(SET CMP0074 NEW)
 find_package(OpenMP REQUIRED)
 
-
+# Find OpenBLAS package
+find_package(OpenBLAS REQUIRED)
 
 add_subdirectory(challenge)
 add_subdirectory(test)

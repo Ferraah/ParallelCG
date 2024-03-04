@@ -8,3 +8,5 @@ target_include_directories(CG_CORE PRIVATE /home/users/u101373/OpenCL-CLHPP/incl
 target_compile_options(CG_CORE PRIVATE -fsycl -m64 -g)
 target_link_libraries(CG_CORE PUBLIC MPI::MPI_CXX OpenMP::OpenMP_CXX)
 
+# Additional settings for MPI
+target_include_directories(CG_CORE PUBLIC ${MPI_C_INCLUDE_PATH})

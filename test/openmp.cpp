@@ -11,7 +11,7 @@ int main(int argc, char ** argv){
     int max_iter = 1000;
     double res = 1.e-6;
 
-    CGSolver<OpenCL_CG> solver;
+    CGSolver<OpenMP_CG> solver;
 
     const char *m_path =  "../test/assets/matrix_10000.bin";
     const char *rhs_path =  "../test/assets/rhs_10000.bin";

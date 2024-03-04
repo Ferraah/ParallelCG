@@ -170,14 +170,17 @@ namespace cgcore{
 
     }
 
+
     OpenCL_CG::OpenCL_CG(){
 
         cl_int err_num; 
         const char * source_path = "/home/users/u101373/ParallelCG/challenge/src/cgcore/strategy/openCL/kernels.cl";
         const char * binary_path = "kernels.cl.bin";
 
+
         OpenCLUtils::InitializePlatforms(device, context, command_queue);
         OpenCLUtils::InitializeProgram(source_path, binary_path, program, device, context);
+
         assert(device != NULL);
         assert(context != NULL);
         assert(command_queue != NULL);
@@ -197,6 +200,7 @@ namespace cgcore{
         assert(dot_product != NULL);
         assert(mvm_product != NULL);
         assert(vs_product != NULL);
+        
         // 
 
         // Allocate buffers in device memory

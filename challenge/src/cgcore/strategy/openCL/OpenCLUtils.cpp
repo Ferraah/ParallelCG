@@ -12,7 +12,7 @@ namespace cgcore{
     void OpenCLUtils::InitializePlatforms(cl_device_id &device, cl_context &context, cl_command_queue &command_queue){
 
         cl_int err_num;
-        cl_uint numPlatforms;
+        cl_uint devices_count;
         cl_platform_id platformIds[2];
         cl_platform_id selected_platform;
         context = NULL;
@@ -21,17 +21,21 @@ namespace cgcore{
         // simply choose the first available platform.  Normally, you would
         // query for all available platforms and select the most appropriate one.
         std::cout << "Fetching platforms..";
-        err_num = clGetPlatformIDs(2, platformIds, &numPlatforms);
+        err_num = clGetPlatformIDs(2, platformIds, &devices_count);
 
         std::cerr << "OpenCL platforms found" << std::endl;
-        if (err_num != CL_SUCCESS || numPlatforms <= 0)
+        if (err_num != CL_SUCCESS || devices_count<= 0)
         {
             std::cerr << "Failed to find any OpenCL platforms." << std::endl;
           
         }
         
-        std::cout << "Number of available platforms: " << numPlatforms << std::endl; 
-        selected_platform = platformIds[1];
+        std::cout << "Number of available platforms: " << devices_count<< std::endl; 
+
+        if(devices_count == 1)
+            selected_platform = platformIds[0];
+        else
+            selected_platform = platformIds[1];
 
         // Next, create an OpenCL context on the platform.  Attempt to
         // create a GPU-based context, and if that fails, try to create
@@ -43,17 +47,18 @@ namespace cgcore{
             0
         };
 
+
         context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_GPU,
                                         NULL, NULL, &err_num);
         if (err_num != CL_SUCCESS)
         {
-            std::cout << "Could not create GPU context, trying CPU..." << std::endl;
+            std::cout << "Trying to create CPU context..." << std::endl;
             context = clCreateContextFromType(contextProperties, CL_DEVICE_TYPE_CPU,
                                             NULL, NULL, &err_num);
 
             err_num = clGetDeviceIDs(selected_platform, CL_DEVICE_TYPE_CPU, 1, &device, NULL);
 
-            if (err_num!= CL_SUCCESS)
+            if (err_num != CL_SUCCESS)
             {
                 std::cerr << "Failed to create an OpenCL GPU or CPU context." << std::endl;
                 

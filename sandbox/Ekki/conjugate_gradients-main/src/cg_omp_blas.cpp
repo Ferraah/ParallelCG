@@ -12,9 +12,10 @@
 
 #include <omp.h>
 #include <numeric>
+
 #include <cblas.h>
 
-// benchmarking: measuring time
+// benchmarking: measuring timje
 double wall_time(){
   struct timespec t;
   clock_gettime (CLOCK_MONOTONIC, &t);
