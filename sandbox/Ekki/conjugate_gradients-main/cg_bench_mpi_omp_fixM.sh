@@ -5,7 +5,7 @@
 # The benchmarking results are stored in cg_bench_mpi_omp_*.txt
 
 # filename
-filename='cg_bench_mpi_omp_fixM.txt'
+filename='cg_bench_mpi_omp_20000.txt'
 
 # Number of processes
 ps=(1 2 4 8 16 32 64 128 256)
@@ -13,8 +13,8 @@ ps=(1 2 4 8 16 32 64 128 256)
 ts=(1 2 4 8 16)
 
 module load OpenMPI
-mpic++ -o cg_mpi_omp src/cg_mpi_omp.cpp -fopenmp
-./random_spd_system.sh 10000 io/matrix.bin io/rhs.bin
+mpic++ -fopenmp -o cg_mpi_omp src/cg_mpi_omp.cpp
+# ./random_spd_system.sh 10000 io/matrix.bin io/rhs.bin
 echo "processes   threads    matrix_size   time" > $filename
 
 for p in "${ps[@]}"

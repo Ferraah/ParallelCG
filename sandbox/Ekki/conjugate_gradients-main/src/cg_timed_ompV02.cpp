@@ -134,37 +134,37 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
 {
     // y = alpha * A * x + beta * y;
     // parallelizing this for-loop is the most important and has the most significant impact on performance
-    // #pragma omp parallel for simd shared(alpha, A, x, beta, y, num_rows, num_cols) // or use collapse
-    // for(size_t r = 0; r < num_rows; r++)
-    // {
-    //     double y_val = 0.0;
-    //     for(size_t c = 0; c < num_cols; c++)
-    //     {
-    //         y_val += alpha * A[r * num_cols + c] * x[c];
-    //     }
-    //     y[r] = beta * y[r] + y_val;
-    // }
-
-    #pragma omp parallel default(none) shared(alpha, A, x, beta, y, num_rows, num_cols)
+    #pragma omp parallel for shared(alpha, A, x, beta, y, num_rows, num_cols) // or use collapse
+    for(size_t r = 0; r < num_rows; r++)
     {
-        int num_threads = omp_get_num_threads();
-        int my_tid = omp_get_thread_num();
-        int num_items = num_rows/num_threads;
-        int my_start = my_tid * num_items;
-        int my_end = my_start + num_items;
-        if (my_tid == num_threads-1){
-            my_end = num_rows;
+        double y_val = 0.0;
+        for(size_t c = 0; c < num_cols; c++)
+        {
+            y_val += alpha * A[r * num_cols + c] * x[c];
         }
-        for(size_t r = my_start; r < my_end; r++){
-            double y_val = 0.0;
-            for(size_t c = 0; c < num_cols; c++)
-            {
-                y_val += alpha * A[r * num_cols + c] * x[c];
-            }
-            // y_val = alpha * std::inner_product(A+my_start*num_cols, A+my_start*num_cols+num_cols, x, 0.0);
-            y[r] = beta * y[r] + y_val;
-        }
+        y[r] = beta * y[r] + y_val;
     }
+
+    // #pragma omp parallel default(none) shared(alpha, A, x, beta, y, num_rows, num_cols)
+    // {
+    //     int num_threads = omp_get_num_threads();
+    //     int my_tid = omp_get_thread_num();
+    //     int num_items = num_rows/num_threads;
+    //     int my_start = my_tid * num_items;
+    //     int my_end = my_start + num_items;
+    //     if (my_tid == num_threads-1){
+    //         my_end = num_rows;
+    //     }
+    //     for(size_t r = my_start; r < my_end; r++){
+    //         double y_val = 0.0;
+    //         for(size_t c = 0; c < num_cols; c++)
+    //         {
+    //             y_val += alpha * A[r * num_cols + c] * x[c];
+    //         }
+    //         // y_val = alpha * std::inner_product(A+my_start*num_cols, A+my_start*num_cols+num_cols, x, 0.0);
+    //         y[r] = beta * y[r] + y_val;
+    //     }
+    // }
 }
 
 
@@ -178,11 +178,16 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     int num_iters;
 
     // Initializing: x(0)=vec(0) -> r = b & start with d(0) = p(0) = r(0)
+    #pragma omp parallel for
     for(size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
-        r[i] = b[i];
         p[i] = b[i];
+    }
+
+    for(size_t i = 0; i < size; i++)
+    {
+        r[i] = b[i];
     }
 
     // Determine the number of threads

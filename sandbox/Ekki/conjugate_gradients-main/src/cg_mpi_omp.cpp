@@ -159,7 +159,7 @@ void gemv(double alpha, const double * A, const double * x, double beta, double 
 
     // Determine correct range for each rank
     // p1: 0 - my_num_rows - 1, p2: my_num_rows - 
-    #pragma omp parallel for simd shared(alpha, A, x, beta, y, my_start, my_end, num_cols, my_y)
+    #pragma omp parallel for shared(alpha, A, x, beta, y, my_start, my_end, num_cols, my_y)
     for(size_t r = my_start ; r < my_end; r++)
     {
         double y_val = 0.0;
