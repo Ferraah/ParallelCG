@@ -8,6 +8,7 @@
 #include "../../src/cgcore/strategy/openMP/OpenMP_CG.hpp"
 #include "../../src/cgcore/strategy/openMP_BLAS/OpenMP_BLAS_CG.hpp"
 #include "../../src/cgcore/strategy/MPI/MPI_CG.hpp"
+#include "../../src/cgcore/strategy/MPI_OpenMP/MPI_OpenMP_CG.hpp"
 #include "../../src/cgcore/strategy/MPI/MPI_DISTRIBUTED.hpp"
 #include "../../src/cgcore/strategy/openCL/OpenCLUtils.hpp"
 #include "../../src/cgcore/strategy/CUDA/CUBLAS_CG.hpp"
