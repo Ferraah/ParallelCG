@@ -30,6 +30,22 @@ namespace cgcore{
             }
     }
 
+
+    std::string Timer::get_last_formatted() const {
+        double time = Timer::get_last() ;
+            if(time < 1e-6){
+                return std::to_string(time*1e9) + " ns";
+            }else if(time < 1e-3){
+                return std::to_string(time*1e6) + " us";
+            }else if(time < 1){
+                return std::to_string(time*1e3) + " ms";
+            }else{
+                return std::to_string(time) + " s";
+            }
+    }
+
+
+
     void Timer::print(std::string title) const{
         if(title.empty()) 
             std::cout << "\n---- Timings ----" << std::endl;

@@ -28,6 +28,7 @@ namespace cgcore {
         void print() const;
         void print(std::string) const;
         void print_last_formatted() const;
+        std::string get_last_formatted() const;
 
         double get_last() const;
         double get_min() const;

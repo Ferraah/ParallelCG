@@ -42,5 +42,6 @@ endif(CUDA_TESTS)
 
 add_subdirectory(challenge)
 add_subdirectory(test)
+add_subdirectory(benchmark/SpeedupTemplates)
 
 
