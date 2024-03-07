@@ -18,7 +18,7 @@ macro(setup_executable TARGET_NAME SOURCE_FILE)
     # Additional settings for MPI
     target_include_directories(${TARGET_NAME} PUBLIC ${MPI_C_INCLUDE_PATH})
 
-endmacro(CUDA_TESTS)
+endmacro()
 
 if(CUDA_TESTS)
    setup_executable(cuda cuda.cpp)
@@ -29,6 +29,7 @@ else()
     setup_executable(opencl opencl.cpp)
     setup_executable(openmp openmp.cpp)
     setup_executable(mpi mpi.cpp)
+    setup_executable(mpi_matrix_distr mpi_matrix_distr.cpp)
     setup_executable(openmp_blas openmp_blas.cpp)
     setup_executable(micro_benchmark_opencl micro_benchmark_opencl.cpp)
 endif(CUDA_TESTS)

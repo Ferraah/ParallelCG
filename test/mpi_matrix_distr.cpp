@@ -5,7 +5,10 @@ using namespace cgcore;
 int main(int argc, char ** argv){
 
     MPI_Init(&argc, &argv);
-
+    int rank, num_processes;
+    MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    
     double *matrix;
     double *vector;
     double *x;
@@ -23,9 +26,11 @@ int main(int argc, char ** argv){
     int* displacements;
 
     utils::mpi::mpi_distributed_read_matrix(m_path , matrix, m, n, rows_per_process, displacements);
-    utils::mpi::mpi_distributed_read_all_vector(rhs_path, b, m, v_cols, rows_per_process, displacements);
+    utils::mpi::mpi_distributed_read_all_vector(rhs_path, vector, m, v_cols, rows_per_process, displacements);
 
-    std::cout << n << std::endl;
+    if(rank == 0)
+        std::cout << n << std::endl;
+
     x = new double[n];
     //utils::print_matrix(matrix, n, n);
     //utils::print_matrix(vector, 1, n);
@@ -37,7 +42,8 @@ int main(int argc, char ** argv){
     delete [] vector;
     delete [] x;
 
-    solver.get_timer().print_last_formatted() ;
+    if(rank == 0)
+        solver.get_timer().print_last_formatted() ;
     
     MPI_Finalize();
     return 0;

@@ -98,8 +98,7 @@ namespace cgcore{
         rr = bb;
         for(num_iters = 1; num_iters <= max_iters; num_iters++)
         {
-            gemv(1.0, A, p, 0.0, Ap, rows_per_process[rank], rows, displacements[rank]);
-            
+            gemv(1.0, A, p, 0.0, Ap, rows_per_process[rank], cols, displacements[rank]);
             MPI_Barrier(MPI_COMM_WORLD);
 
             MPI_Allgatherv(Ap + displacements[rank], rows_per_process[rank], MPI_DOUBLE, Ap, rows_per_process, displacements, MPI_DOUBLE, MPI_COMM_WORLD);

@@ -129,15 +129,17 @@ namespace cgcore{
         delete[] r;
         delete[] p;
         delete[] Ap;
-
-        if(num_iters <= max_iters)
-        {
-            printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(rr / bb));
+        
+        if(rank == 0){
+            if(num_iters <= max_iters)
+            {
+                printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(rr / bb));
+            }
+            else
+            {
+                printf("Did not converge in %d iterations, relative error is %e\n", max_iters, std::sqrt(rr / bb));
+            }  
         }
-        else
-        {
-            printf("Did not converge in %d iterations, relative error is %e\n", max_iters, std::sqrt(rr / bb));
-        }  
     }
         
 }

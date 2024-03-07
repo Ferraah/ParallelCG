@@ -22,8 +22,8 @@ int main(int argc, char ** argv){
     int* rows_per_process;
     int* displacements;
 
-    utils::mpi::mpi_distributed_read_matrix(m_path , matrix, m, n, rows_per_process, displacements);
-    utils::mpi::mpi_distributed_read_all_vector(rhs_path, b, m, v_cols, rows_per_process, displacements);
+    utils::mpi::mpi_distributed_read_matrix(m_path, matrix, m, n, rows_per_process, displacements);
+    utils::mpi::mpi_distributed_read_all_vector(rhs_path, vector, m, v_cols, rows_per_process, displacements);
 
     std::cout << n << std::endl;
     x = new double[n];
