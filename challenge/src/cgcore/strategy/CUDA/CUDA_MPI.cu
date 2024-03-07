@@ -11,7 +11,7 @@ namespace cgcore
         } \
     }
 
-static uint64_t CUDA_MPI::getHostHash(const char* string) {
+uint64_t CUDA_MPI::getHostHash(const char* string) {
   // Based on DJB2a, result = result * 33 ^ char
   uint64_t result = 5381;
   for (int c = 0; string[c] != '\0'; c++){
@@ -21,7 +21,7 @@ static uint64_t CUDA_MPI::getHostHash(const char* string) {
 }
 
 
-static void CUDA_MPI::getHostName(char* hostname, int maxlen) {
+void CUDA_MPI::getHostName(char* hostname, int maxlen) {
   gethostname(hostname, maxlen);
   for (int i=0; i< maxlen; i++) {
     if (hostname[i] == '.') {
@@ -30,22 +30,21 @@ static void CUDA_MPI::getHostName(char* hostname, int maxlen) {
     }
   }
 }
-
 void CUDA_MPI::run(const double * A,
     const double * b,
     double * x,
     size_t size,
     int max_iters, 
-    double rel_error)
+    double rel_error) const
     {
         int rank;
         int mpi_size;
 
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-        MPI_Comm_size(MPI_COMM_WORLD, &size);
+        MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 
-        int* rows_per_process = new double[mpi_size];
-        int* displacements = new double[mpi_size];
+        int* rows_per_process = new int[mpi_size];
+        int* displacements = new int[mpi_size];
 
         for (unsigned int i = 0; i < mpi_size; ++i)
         {
@@ -62,20 +61,22 @@ void CUDA_MPI::run(const double * A,
             displacements[i] = displacements[i-1] + rows_per_process[i-1];
         }
 
-        conjugate_gradient(A, x, b, rows_per_process[i], size, rows_per_process, displacements, max_iters, rel_error);
+        conjugate_gradient(A, x, b, rows_per_process[rank], size, rows_per_process, displacements, max_iters, rel_error);
+        
         delete [] rows_per_process;
         delete [] displacements;
-    }
+  } ;
 
-void CUDA_MPI::conjugate_gradient(const double* distr_A,
+void CUDA_MPI::conjugate_gradient(
+  const double* distr_A,
   double* x, 
-  double* b, 
-  const unsigned int rows, 
-  const unsigned int cols, 
-  const int* rows_per_process, 
-  const int* displacements, 
+  const double* b, 
+  unsigned int rows, 
+  unsigned int cols, 
+  int* rows_per_process, 
+  int* displacements, 
   const int max_iter, 
-  const double rel_err)
+  const double rel_err) const
   {
 
     // First, check that MPI has been correctly initialized

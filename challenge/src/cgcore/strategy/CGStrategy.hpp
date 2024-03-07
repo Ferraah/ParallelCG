@@ -7,6 +7,7 @@ namespace cgcore{
 
     class CGStrategy{
         public: 
+
             /**
              * @brief Run the selected stategy.
              * @param A Pointer to matrix

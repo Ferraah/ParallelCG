@@ -1,6 +1,7 @@
 
 #include "MPI_DISTRIBUTED.hpp"
 
+namespace cgcore{
     void MPI_DISTRIBUTED::run(const double * A , const double * b, double * x, size_t size, int max_iter, double res_error) const{
         int rank;
         int mpi_size;
@@ -28,9 +29,9 @@
 
         delete [] rows_per_process;
         delete [] displacements;
-    }
+    } 
 
-    double MPI_DISTRIBUTED::dot(const double * x, const double * y, size_t size) 
+    double MPI_DISTRIBUTED::dot(const double * x, const double * y, size_t size) const 
     {
         double result = 0.0;
         for(size_t i = 0; i < size; i++)
@@ -42,7 +43,7 @@
 
 
 
-    void MPI_DISTRIBUTED::axpby(double alpha, const double * x, double beta, double * y, size_t size) 
+    void MPI_DISTRIBUTED::axpby(double alpha, const double * x, double beta, double * y, size_t size) const
     {
         // y = alpha * x + beta * y
 
@@ -54,7 +55,7 @@
 
 
 
-    void MPI_DISTRIBUTED::gemv(double alpha, const double * A, const double * x, double beta, double *& y, size_t num_rows, size_t num_cols, int displ) 
+    void MPI_DISTRIBUTED::gemv(double alpha, const double * A, const double * x, double beta, double *& y, size_t num_rows, size_t num_cols, int displ) const 
     {
         for(size_t r = 0; r < num_rows; r++)
         {
@@ -72,7 +73,7 @@
     /**
      * 
     */ 
-    void MPI_DISTRIBUTED::conjugate_gradient(const double * A, const double * b, double * x, size_t rows, size_t cols, int* rows_per_process, int* displacements, int max_iters, double rel_error) 
+    void MPI_DISTRIBUTED::conjugate_gradient(const double * A, const double * b, double * x, size_t rows, size_t cols, int* rows_per_process, int* displacements, int max_iters, double rel_error) const
     {
         double alpha, beta, bb, rr, rr_new;
         double * r = new double[rows];
@@ -131,3 +132,4 @@
         
     }
     
+}

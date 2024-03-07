@@ -19,7 +19,7 @@ namespace cgcore
 {
     class CUBLAS_CG : public CGStrategy{
         public:
-            virtual void run(const double * A, const double * b, double * x, size_t size, int max_iters, double rel_error) const;
+            void run(const double * , const double * , double * , size_t , int , double ) const ;
     };
 }
 
