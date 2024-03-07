@@ -11,7 +11,7 @@ endif(CUDA_TESTS)
 
 add_library(CG_CORE SHARED ${SOURCES})
 
-target_include_directories(CG_CORE PRIVATE /home/users/u101373/OpenCL-CLHPP/include)
+target_include_directories(CG_CORE PRIVATE "include/CL")
 target_link_libraries(CG_CORE PUBLIC MPI::MPI_CXX )
 
 if(CUDA_TESTS)
