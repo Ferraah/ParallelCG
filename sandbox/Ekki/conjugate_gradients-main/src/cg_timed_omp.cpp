@@ -114,10 +114,11 @@ void axpby(double alpha, const double * x, double beta, double * y, size_t size)
 void gemv(double alpha, const double * A, const double * x, double beta, double * y, size_t num_rows, size_t num_cols)
 {
     // y = alpha * A * x + beta * y;
-    #pragma omp parallel for default(none) shared(alpha, A, x, beta, y, num_rows, num_cols)
+    double y_val = 0.0;
+    #pragma omp parallel for reduction(+:y_val)
     for(size_t r = 0; r < num_rows; r++)
     {
-        double y_val = 0.0;
+        y_val = 0.0;
         for(size_t c = 0; c < num_cols; c++)
         {
             y_val += alpha * A[r * num_cols + c] * x[c];
@@ -137,6 +138,7 @@ void conjugate_gradients(const double * A, const double * b, double * x, size_t 
     int num_iters;
 
     // Initializing: x(0)=vec(0) -> r = b & start with d(0) = p(0) = r(0)
+    #pragma omp parallel for
     for(size_t i = 0; i < size; i++)
     {
         x[i] = 0.0;
