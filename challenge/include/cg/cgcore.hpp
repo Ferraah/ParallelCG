@@ -10,6 +10,7 @@
 #include "../../src/cgcore/strategy/MPI/MPI_CG.hpp"
 #include "../../src/cgcore/strategy/openCL/OpenCLUtils.hpp"
 #include "../../src/cgcore/strategy/CUDA/CUBLAS_CG.hpp"
+#include "../../src/cgcore/strategy/CUDA/CUDA_MPI.hpp"
 
 #include "../../src/cgcore/utils/utils.hpp"
 
