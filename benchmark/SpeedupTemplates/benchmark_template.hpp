@@ -27,7 +27,7 @@ double wall_time(){
 using namespace cgcore;
 
 template <class FASTER_STRATEGY, class SLOWER_STRATEGY>
-int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const char * input_file_rhs, const char *file_name){
+int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const char * input_file_rhs, const char *file_name, bool run_sequential){
 
     
     int rank, num_processes;
@@ -145,7 +145,7 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
         std::cout << "Solver 1 took " << solving_time1 <<  " s." << std::endl;
 
     double solving_time2;
-    if(rank == 0){
+    if(rank == 0 && run_sequential){
         CGSolver<SLOWER_STRATEGY> solver2;
         solver2.solve(matrix, rhs, sol, size, max_iters, rel_error);
         solving_time2 = solver2.get_timer().get_last(); 
@@ -164,7 +164,10 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
         std::ofstream myfile;
         myfile.open(file_name, std::ios::app);
         // Append to file
-        myfile << size << "\t" << solving_time1 << "\t" << solving_time2 <<  "\t" << solving_time2/solving_time1 << "\n";
+        if(run_sequential)
+            myfile << size << "\t" << solving_time1 << "\t" << solving_time2 <<  "\t" << solving_time2/solving_time1 << "\n";
+        else
+            myfile << size << "\t" << solving_time1 << "\n";  
         myfile.close();
     }
 

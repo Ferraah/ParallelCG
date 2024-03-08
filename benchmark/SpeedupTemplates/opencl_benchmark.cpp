@@ -15,7 +15,8 @@ int main(int argc, char **argv){
         benchmark_cg<OpenCL_CG, Sequential>(argc, argv, 
             (data_folder+"matrix"+size_str+".bin").c_str(),
             (data_folder+"rhs"+size_str+".bin").c_str(),
-            "../io/banchmark_su_opencl.txt");
+            "../io/banchmark_su_opencl.txt", 
+            false);
     }
 
     return 0;
