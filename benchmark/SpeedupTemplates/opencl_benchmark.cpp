@@ -12,10 +12,10 @@ int main(int argc, char **argv){
     
     for(int size : sizes){
         const char* size_str = std::to_string(size).c_str();
-        benchmark_cg<OpenMP_CG, Sequential>(argc, argv, 
+        benchmark_cg<OpenCL_CG, Sequential>(argc, argv, 
             (data_folder+"matrix"+size_str+".bin").c_str(),
             (data_folder+"rhs"+size_str+".bin").c_str(),
-            "../io/banchmark_su_openmp.txt");
+            "../io/banchmark_su_opencl.txt");
     }
 
     return 0;

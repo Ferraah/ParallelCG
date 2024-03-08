@@ -1,6 +1,15 @@
 #ifndef BENCHMARK_TEMPLATE_HPP
 #define BENCHMARK_TEMPLATE_HPP
 
+#define PRINTF(format, ...) \
+    do { \
+        int rank; \
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank); \
+        if (rank == 0) { \
+            printf(format, ##__VA_ARGS__); \
+        } \
+    } while (0)
+
 #include <stdio.h>
 #include <fstream>
 #include <iostream>
@@ -17,14 +26,22 @@ double wall_time(){
 
 using namespace cgcore;
 
-template <class STRATEGY>
+template <class FASTER_STRATEGY, class SLOWER_STRATEGY>
 int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const char * input_file_rhs, const char *file_name){
 
+    
+    int rank, num_processes;
+    MPI_Comm_size(MPI_COMM_WORLD, &num_processes);
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+
     // Usage instructions
-    printf("Usage: ./random_matrix input_file_matrix.bin input_file_rhs.bin output_file_sol.bin max_iters rel_error\n");
-    printf("All parameters are optional and have default values\n");
-    printf("\n");
+    PRINTF("Usage: ./random_matrix input_file_matrix.bin input_file_rhs.bin output_file_sol.bin max_iters rel_error\n");
+    PRINTF("All parameters are optional and have default values\n");
+    PRINTF("\n");
     //
+
+
 
     // Settings for the benchmark  -----------------------
     int max_iters = 1000;
@@ -35,12 +52,12 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
     if(argc > 4) max_iters = atoi(argv[4]);
     if(argc > 5) rel_error = atof(argv[5]);
 
-    printf("Provided settings :\n");
-    printf("  input_file_matrix: %s\n", input_file_matrix);
-    printf("  input_file_rhs:    %s\n", input_file_rhs);
-    printf("  max_iters:         %d\n", max_iters);
-    printf("  rel_error:         %e\n", rel_error);
-    printf("\n");
+    PRINTF("Provided settings :\n");
+    PRINTF("  input_file_matrix: %s\n", input_file_matrix);
+    PRINTF("  input_file_rhs:    %s\n", input_file_rhs);
+    PRINTF("  max_iters:         %d\n", max_iters);
+    PRINTF("  rel_error:         %e\n", rel_error);
+    PRINTF("\n");
 
     // -------------------------------------------------
 
@@ -55,7 +72,7 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
     {
 
         // Reading matrix
-        printf("Reading matrix from file ...\n");
+        PRINTF("Reading matrix from file ...\n");
 
         size_t matrix_rows;
         size_t matrix_cols;
@@ -70,13 +87,13 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
         }
 
         t_read_m += wall_time();
-        printf("Done\n");
-        printf("Reading the matrix took %8g s. \n", t_read_m);
-        printf("\n");
+        PRINTF("Done\n");
+        PRINTF("Reading the matrix took %8g s. \n", t_read_m);
+        PRINTF("\n");
         // 
 
         // Reading rhs
-        printf("Reading right hand side from file ...\n");
+        PRINTF("Reading right hand side from file ...\n");
         size_t rhs_rows;
         size_t rhs_cols;
         double t_read_right_side = - wall_time();
@@ -87,9 +104,9 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
             return 2;
         }
         t_read_right_side += wall_time();
-        printf("Done\n");
-        printf("Reading the right side took %8g s. \n", t_read_right_side);
-        printf("\n");
+        PRINTF("Done\n");
+        PRINTF("Reading the right side took %8g s. \n", t_read_right_side);
+        PRINTF("\n");
         
         // 
 
@@ -116,33 +133,46 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
 
     // Strategy benchmark
 
-    printf("Solving the system ...\n");
+    PRINTF("Solving the system ...\n");
 
     double * sol = new double[size];
 
-    CGSolver<STRATEGY> solver;
-    solver.solve(matrix, rhs, sol, size, max_iters, rel_error);
+    CGSolver<FASTER_STRATEGY> solver1;
 
-    double solving_time = solver.get_timer().get_last(); 
+    solver1.solve(matrix, rhs, sol, size, max_iters, rel_error);
+    double solving_time1 = solver1.get_timer().get_last(); 
+    if(rank == 0)
+        std::cout << "Solver 1 took " << solving_time1 <<  " s." << std::endl;
 
-    printf("Done\n");
-    std::cout << "The c-g-algorithm took " << solving_time <<  " s." << std::endl;
+    double solving_time2;
+    if(rank == 0){
+        CGSolver<SLOWER_STRATEGY> solver2;
+        solver2.solve(matrix, rhs, sol, size, max_iters, rel_error);
+        solving_time2 = solver2.get_timer().get_last(); 
+        std::cout << "Solver 2 took " << solving_time2 <<  " s." << std::endl;
+    }
 
-    printf("\n");
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    PRINTF("Done\n");
+
+    PRINTF("\n");
 
     // 
 
-    std::ofstream myfile;
-    myfile.open(file_name, std::ios::app);
-    // Append to file
-    myfile << size << "\t" << solving_time << "\n";
-    myfile.close();
+    if(rank == 0){
+        std::ofstream myfile;
+        myfile.open(file_name, std::ios::app);
+        // Append to file
+        myfile << size << "\t" << solving_time1 << "\t" << solving_time2 <<  "\t" << solving_time2/solving_time1 << "\n";
+        myfile.close();
+    }
 
     delete[] matrix;
     delete[] rhs;
     delete[] sol;
 
-    printf("Finished successfully\n");
+    PRINTF("Finished successfully\n");
 
     return 0;
 }
