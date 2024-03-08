@@ -74,7 +74,6 @@ void conjugate_gradient(const double* distr_A,
     
     const int m = rows_per_process[rank];
     const int n = cols;
-    const int lda = m;
     
     double alpha, beta, bb, rr, rr_new;
     int num_iters;
@@ -107,54 +106,9 @@ void conjugate_gradient(const double* distr_A,
     cudaMemcpy(dev_loc_A, distr_A, rows_per_process[rank] * cols * sizeof(double), cudaMemcpyHostToDevice);
     cudaMemset(dev_x, 0, rows * sizeof(double));
     cudaMemcpy(dev_b, b, rows * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_r, b, rows * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_p, b, rows * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_r, dev_b, rows * sizeof(double), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(dev_p, dev_b, rows * sizeof(double), cudaMemcpyDeviceToDevice);
 
-    // for (int r = 0; r < mpi_size; ++r)
-    // {   MPI_Barrier(MPI_COMM_WORLD);
-    //     if (r == rank)
-    //         {
-    //             std::cout << "Rank " << rank << std::endl;
-    //             for (int i = 0; i < rows; ++i)
-    //             {
-    //                 std::cout << b[i] << " ";
-    //             }
-    //             std::cout << std::endl;
-    //         }
-    // }
-
-    // for (int r = 0; r < mpi_size; ++r)
-    // {   MPI_Barrier(MPI_COMM_WORLD);
-    //     if (r == rank)
-    //         {
-    //             std::cout << "Rank " << rank << std::endl;
-    //             for (int i = 0; i < rows; ++i)
-    //             {
-    //                 std::cout << b[i] << " ";
-    //             }
-    //             std::cout << std::endl;
-    //         }
-    // }
-
-
-    // for (int r = 0; r < mpi_size; ++r)
-    // {   MPI_Barrier(MPI_COMM_WORLD);
-    //     if (r == rank)
-    //         {
-    //             std::cout << "Rank " << rank << "mat" << std::endl;
-    //             for (int i = 0; i < rows_per_process[rank]; ++i)
-    //             {
-    //               for (int j = 0; j < cols; ++j)
-    //                 std::cout << distr_A[i * cols + j] << " ";
-    //                 std::cout << std::endl;
-    //             }
-    //         }
-    // }
-    
-
-    // bb = dot(b, b, size);
-    // Compute the dot product
-    MPI_Barrier(MPI_COMM_WORLD);
     double one = 1.0;
     double zero = 0.0;
     double alpha2;
@@ -172,37 +126,11 @@ void conjugate_gradient(const double* distr_A,
       cublasCheckError(cublasDgemv(handle, CUBLAS_OP_T, n, m, &one, dev_loc_A, n, dev_p, 1, &zero, dev_loc_Ap, 1));
       cudaMemcpy(local_Ap, dev_loc_Ap, rows_per_process[rank] * sizeof(double), cudaMemcpyDeviceToHost);
       
-      // for (int r = 0; r < mpi_size; ++r)
-      // {   MPI_Barrier(MPI_COMM_WORLD);
-      //     if (r == rank)
-      //         {
-      //             std::cout << "Rank " << rank << std::endl;
-      //             for (int i = 0; i < rows_per_process[rank]; ++i)
-      //             {
-      //                 std::cout << local_Ap[i] << " ";
-      //             }
-      //             std::cout << std::endl;
-      //         }
-      // }
+    
       MPI_Barrier(MPI_COMM_WORLD);
       MPI_Allgatherv(local_Ap, rows_per_process[rank], MPI_DOUBLE, host_Ap, rows_per_process, displacements, MPI_DOUBLE, MPI_COMM_WORLD);
-      // MPI_Barrier(MPI_COMM_WORLD);
-      // for (int r = 0; r < mpi_size; ++r)
-      // {   MPI_Barrier(MPI_COMM_WORLD);
-      //     if (r == rank)
-      //         {
-      //             std::cout << "Rank " << rank << std::endl;
-      //             for (int i = 0; i < rows; ++i)
-      //             {
-      //                 std::cout << host_Ap[i] << " ";
-      //             }
-      //             std::cout << std::endl;
-      //         }
-      // }
-      // MPI_Barrier(MPI_COMM_WORLD);
       cudaMemcpy(dev_Ap, host_Ap, cols * sizeof(double), cudaMemcpyHostToDevice);
 
-      // And then distribute the vector
       
       cublasDdot(handle, rows, dev_p, 1, dev_Ap, 1, &den);
       
@@ -210,48 +138,31 @@ void conjugate_gradient(const double* distr_A,
       
       // axpby(alpha, p, 1.0, x, size);
       cublasDaxpy(handle, rows, &alpha, dev_p, 1, dev_x, 1);
-      // nccl_gatherv(dev_x, rows_per_process, displacements, rank, mpi_size, stream, comm);
       
       // axpby(-alpha, Ap, 1.0, r, size);
       alpha2 = -alpha;
       cublasDaxpy(handle, rows, &alpha2, dev_Ap, 1, dev_r, 1);
-      // todo: distribuitre dev_r
-      // nccl_gatherv(dev_r, rows_per_process, displacements, rank, mpi_size, stream, comm);
-      
       cublasDdot(handle, rows, dev_r, 1, dev_r, 1, &rr_new);
       
       beta = rr_new / rr;
       rr = rr_new;
-      // if(rank == 0)
-      // {
-      //   std::cout << "0: iteration: " << num_iters << " res: " << rr << std::endl;
-      // }
-      // if (rank == 1)
-      // {
-      //   std::cout << "1: iteration: " << num_iters << " res: " << rr << std::endl;
-        
-      // }
+      
       if(std::sqrt(rr / bb) < rel_err) { break; }
-      // axpby(1.0, r, beta, p, size);
       cublasDscal(handle, rows, &beta, dev_p, 1);
       cublasDaxpy(handle, rows, &one, dev_r, 1, dev_p, 1);
-      // distribuire dev_p
       MPI_Barrier(MPI_COMM_WORLD);
     }
 
     if(num_iters <= max_iter && rank == 0)
     {
-      printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(rr / bb));
+      //printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(rr / bb));
       cudaMemcpy(x, dev_x, cols * sizeof(double), cudaMemcpyDeviceToHost);
     }
     else if (num_iters > max_iter)
     {
-      // printf("Did not converge in %d iterations, relative error is %e\n", max_iter, std::sqrt(rr / bb));
+      printf("Did not converge in %d iterations, relative error is %e\n", max_iter, std::sqrt(rr / bb));
     }
-    
-    // gather sulla gpu
-    // ritornare dev_x in un vettore locale
-    // fare all gather
+
     cudaFree(dev_loc_A);
     cudaFree(dev_x);
     cudaFree(dev_b);
@@ -259,5 +170,7 @@ void conjugate_gradient(const double* distr_A,
     cudaFree(dev_p);
     cudaFree(dev_Ap);
     
+    delete [] host_Ap;
+    delete [] local_Ap;
   } 
   

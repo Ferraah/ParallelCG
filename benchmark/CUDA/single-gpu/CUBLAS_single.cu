@@ -18,7 +18,6 @@ __host__ void conjugate_gradient_blas(
     const int n = size;
 
     
-    const int lda = m;
 
     double alpha, beta, bb, rr, rr_new;
     int num_iters;
@@ -47,8 +46,8 @@ __host__ void conjugate_gradient_blas(
     cudaMemcpy(dev_A, A, matrix_bytes, cudaMemcpyHostToDevice);
     cudaMemset(dev_x, 0, vector_bytes);
     cudaMemcpy(dev_b, b, vector_bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_r, b, vector_bytes, cudaMemcpyHostToDevice);
-    cudaMemcpy(dev_p, b, vector_bytes, cudaMemcpyHostToDevice);
+    cudaMemcpy(dev_r, dev_b, vector_bytes, cudaMemcpyDeviceToDevice);
+    cudaMemcpy(dev_p, dev_b, vector_bytes, cudaMemcpyDeviceToDevice);
 
 
     // bb = dot(b, b, size);
@@ -89,7 +88,7 @@ __host__ void conjugate_gradient_blas(
 
     if(num_iters <= max_iters)
     {
-        printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(rr / bb));
+        //printf("Converged in %d iterations, relative error is %e\n", num_iters, std::sqrt(rr / bb));
         cudaMemcpy(x, dev_x, vector_bytes, cudaMemcpyDeviceToHost);
     }
     else

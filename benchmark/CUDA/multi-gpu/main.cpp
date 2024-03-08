@@ -25,17 +25,13 @@ int main(int argc, char** argv)
 
     if (utils::mpi::mpi_distributed_read_matrix(argv[1], distr_A, rows, cols, rows_per_process, displacements))
     {
-        if (rank == 0)
-            std::cout << "Everything done correctly for matrix" << std::endl;
     }
-    if (utils::mpi::mpi_distributed_read_all_vector(argv[1], rhs, rows, v_cols, rows_per_process, displacements))
+    if (utils::mpi::mpi_distributed_read_all_vector(argv[2], rhs, rows, v_cols, rows_per_process, displacements))
     {
-        if (rank == 1)
-            std::cout << "Everything done correctly for vector" << std::endl;
     }
 
     auto t1 = std::chrono::high_resolution_clock::now();
-    conjugate_gradient(distr_A, x, rhs, rows, cols, rows_per_process, displacements, 20000, 1.0e-3);
+    conjugate_gradient(distr_A, x, rhs, rows, cols, rows_per_process, displacements, 1000000, 1.0e-3);
     auto t2 = std::chrono::high_resolution_clock::now();
 
     if (rank == 0)
