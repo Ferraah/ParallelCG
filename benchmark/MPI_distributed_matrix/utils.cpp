@@ -148,7 +148,6 @@ bool utils::mpi::mpi_distributed_read_matrix(const char* filename, double*& matr
     MPI_Status status;
 
     size_t header[2];
-
     if(MPI_File_open(MPI_COMM_WORLD, filename, MPI_MODE_RDONLY, MPI_INFO_NULL, &file) != MPI_SUCCESS)
     {
         return false;

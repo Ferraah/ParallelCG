@@ -65,7 +65,7 @@ namespace cgcore{
                 y_val += alpha * A[(r) * num_cols + c] * x[c];
 
             }
-            y[r + displ] = y_val;
+            y[r] = y_val;
         }
     }
 
@@ -86,6 +86,7 @@ namespace cgcore{
 
         MPI_Comm_size(MPI_COMM_WORLD, &size);
         MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+        double * local_Ap = new double[rows_per_process[rank]];
 
         memset(x, 0, rows * sizeof(double));
         memcpy(r, b, rows * sizeof(double));
@@ -98,10 +99,10 @@ namespace cgcore{
         rr = bb;
         for(num_iters = 1; num_iters <= max_iters; num_iters++)
         {
-            gemv(1.0, A, p, 0.0, Ap, rows_per_process[rank], cols, displacements[rank]);
+            gemv(1.0, A, p, 0.0, local_Ap, rows_per_process[rank], cols, displacements[rank]);
             MPI_Barrier(MPI_COMM_WORLD);
 
-            MPI_Allgatherv(Ap + displacements[rank], rows_per_process[rank], MPI_DOUBLE, Ap, rows_per_process, displacements, MPI_DOUBLE, MPI_COMM_WORLD);
+            MPI_Allgatherv(local_Ap, rows_per_process[rank], MPI_DOUBLE, Ap, rows_per_process, displacements, MPI_DOUBLE, MPI_COMM_WORLD);
             
             alpha = rr / dot(p, Ap, rows);
             axpby(alpha, p, 1.0, x, rows);
