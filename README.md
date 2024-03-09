@@ -112,7 +112,7 @@ int main(int argc, char ** argv){
 }
 ```
 ## Running specific benchmarks
-In the [Benchmark folder](./benchmark) you can find differnt folders that contain the code used for benchmarks. 
+In the [Benchmark folder](./benchmark) you can find different folders that contain the code used for benchmarks. 
 To run a specific benchmark, make sure to allocate enough resources, load the intended modules, and then execute the ```.sh``` script. 
 
-In the [Benchmark folder readme](./benchmark/README.md) you will find a comprehensive list of modules that must be loaded to run each benchmark.
+In the [Benchmark folder readme](./benchmark/README.md) you will find a comprehensive list describing the modules that must be loaded to run each benchmark.
