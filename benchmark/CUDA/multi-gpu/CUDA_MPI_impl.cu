@@ -169,7 +169,7 @@ void conjugate_gradient(const double* distr_A,
     cudaFree(dev_r);
     cudaFree(dev_p);
     cudaFree(dev_Ap);
-    
+
     delete [] host_Ap;
     delete [] local_Ap;
   } 
