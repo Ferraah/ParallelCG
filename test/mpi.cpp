@@ -23,26 +23,25 @@ int main(int argc, char ** argv){
 
     CGSolver<MPI_CG> solver;
 
-    const char *m_path =  "../test/assets/matrix_10000.bin";
-    const char *rhs_path =  "../test/assets/rhs_10000.bin";
+
+    const char *m_path =  "/project/home/p200301/tests/matrix20000.bin";
+    const char *rhs_path =  "/project/home/p200301/tests/rhs20000.bin";
 
     utils::read_matrix_from_file(m_path , matrix, n, m);
     utils::read_vector_from_file(rhs_path, vector, n);
     if(rank == 0)
         std::cout << n << std::endl;
     x = new double[n];
-    //utils::print_matrix(matrix, n, n);
-    //utils::print_matrix(vector, 1, n);
 
    solver.solve(matrix, vector, x, n, max_iter, res);
 
-    //utils::print_matrix(x, 1, n);
     delete [] matrix;
     delete [] vector;
     delete [] x;
 
     if(rank == 0)
         solver.get_timer().print_last_formatted() ;
+
     MPI_Finalize();
     return 0;
 }

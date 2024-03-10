@@ -27,7 +27,7 @@ double wall_time(){
 using namespace cgcore;
 
 template <class FASTER_STRATEGY, class SLOWER_STRATEGY>
-int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const char * input_file_rhs, const char *file_name, bool run_sequential){
+int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const char * input_file_rhs, const char *file_name, bool run_sequential, bool distribute_matrix){
 
     
     int rank, num_processes;
@@ -71,6 +71,9 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
     // Data loading benchmarks 
     {
 
+        int* rows_per_process;
+        int* displacements;
+
         // Reading matrix
         PRINTF("Reading matrix from file ...\n");
 
@@ -78,7 +81,13 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
         size_t matrix_cols;
 
         double t_read_m = -wall_time();
-        bool success_read_matrix = utils::read_matrix_from_file(input_file_matrix, matrix, matrix_rows, matrix_cols);
+        
+        bool success_read_matrix;
+
+        if(!distribute_matrix) 
+            success_read_matrix = utils::read_matrix_from_file(input_file_matrix, matrix, matrix_rows, matrix_cols);
+        else
+            success_read_matrix = utils::mpi::mpi_distributed_read_matrix(input_file_matrix, matrix, matrix_rows, matrix_cols, rows_per_process, displacements);
 
         if(!success_read_matrix)
         {
@@ -130,7 +139,9 @@ int benchmark_cg(int argc, char **argv, const char * input_file_matrix, const ch
 
         size = matrix_rows;
     }
-
+    
+    MPI_Barrier(MPI_COMM_WORLD);
+    
     // Strategy benchmark
 
     PRINTF("Solving the system ...\n");

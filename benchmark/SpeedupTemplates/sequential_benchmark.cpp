@@ -10,7 +10,7 @@ int main(int argc, char **argv){
     MPI_Init(&argc, &argv);
 
     std::string data_folder = "/project/home/p200301/tests/";
-    int sizes[] = {100, 500, 1000, 5000, 10000, 20000, 30000, 40000};
+    int sizes[] = {100, 500, 1000, 5000, 10000, 20000, 30000, 40000, 50000, 60000, 70000};
     
     for(int size : sizes){
         const char* size_str = std::to_string(size).c_str();
@@ -18,7 +18,7 @@ int main(int argc, char **argv){
             (data_folder+"matrix"+size_str+".bin").c_str(),
             (data_folder+"rhs"+size_str+".bin").c_str(),
             "../io/banchmark_sequential.txt", 
-            false);
+            false, false);
     }
 
     MPI_Finalize();
