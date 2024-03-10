@@ -51,8 +51,8 @@ int main(int argc, char ** argv){
 
     CGSolver<OpenMP_CG> solver;
 
-    const char *m_path =  "../test/assets/matrix_10000.bin";
-    const char *rhs_path =  "../test/assets/rhs_10000.bin";
+    const char *m_path =  "/project/home/p200301/tests/matrix20000.bin";
+    const char *rhs_path =  "/project/home/p200301/tests/rhs20000.bin";
 
     utils::read_matrix_from_file(m_path , matrix, n, m);
     utils::read_vector_from_file(rhs_path, vector, n);
@@ -91,8 +91,8 @@ int main(int argc, char ** argv){
     // CGSolver<MPI_DISTRIBUTED> solver;
     CGSolver<CUBLAS_CG> solver;
 
-    const char *m_path =  "../test/assets/matrix_10000.bin";
-    const char *rhs_path =  "../test/assets/rhs_10000.bin";
+    const char *m_path =  "/project/home/p200301/tests/matrix20000.bin";
+    const char *rhs_path =  "/project/home/p200301/tests/rhs20000.bin";
 
     int* rows_per_process;
     int* displacements;
