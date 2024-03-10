@@ -36,7 +36,9 @@ int main(int argc, char** argv)
 
     x = new double[cols];
     auto t1 = std::chrono::high_resolution_clock::now();
-    conjugate_gradient(distr_A, rhs, x, rows, cols, rows_per_process, displacements, 100000, 1.0e-3);
+    if (rank == 0)
+        std::cout << "Calling conjugate gradient" << std::endl;
+    conjugate_gradient(distr_A, rhs, x, rows, cols, rows_per_process, displacements, 100000, 1.0e-6);
     auto t2 = std::chrono::high_resolution_clock::now();
 
     if (rank == 0)

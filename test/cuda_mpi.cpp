@@ -15,9 +15,9 @@ int main(int argc, char ** argv){
     double res = 1.e-6;
 
     CGSolver<CUBLAS_CG> solver;
-
-    const char *m_path =  "../test/assets/matrix_10000.bin";
-    const char *rhs_path =  "../test/assets/rhs_10000.bin";
+    
+    const char *m_path =  "/project/home/p200301/tests/matrix20000.bin";
+    const char *rhs_path =  "/project/home/p200301/tests/rhs20000.bin";
 
     int* rows_per_process;
     int* displacements;

@@ -14,22 +14,31 @@ int main(int argc, char ** argv){
     double *x;
     size_t n, m ; 
     size_t v_cols;
-    int max_iter = 1000;
+    int max_iter = 1000000;
     double res = 1.e-6;
 
     CGSolver<MPI_DISTRIBUTED> solver;
 
-    const char *m_path =  "../test/assets/matrix_10000.bin";
-    const char *rhs_path =  "../test/assets/rhs_10000.bin";
+     const char *m_path =  "/project/home/p200301/tests/matrix20000.bin";
+    const char *rhs_path =  "/project/home/p200301/tests/rhs20000.bin";
 
     int* rows_per_process;
     int* displacements;
 
     utils::mpi::mpi_distributed_read_matrix(m_path , matrix, m, n, rows_per_process, displacements);
+    if (rank == 0)
+        std::cout << "Read matrix" << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD);
     utils::mpi::mpi_distributed_read_all_vector(rhs_path, vector, m, v_cols, rows_per_process, displacements);
+    if (rank == 0)
+        std::cout << "Read vector" << std::endl;
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    if(rank == 0)
+
+    if(rank == 0) {
         std::cout << n << std::endl;
+        std::cout << "Entering the solver" << std::endl;
+    }
 
     x = new double[n];
     //utils::print_matrix(matrix, n, n);

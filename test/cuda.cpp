@@ -6,8 +6,8 @@ using namespace cgcore;
 int main(int argc, char ** argv){
 
 
-    const char *m_path =  "../test/assets/matrix_10000.bin";
-    const char *rhs_path =  "../test/assets/rhs_10000.bin";
+    const char *m_path =  "/project/home/p200301/tests/matrix20000.bin";
+    const char *rhs_path =  "/project/home/p200301/tests/rhs20000.bin";
 
     test_cg<CUBLAS_CG>(argc, argv, m_path, rhs_path);
 

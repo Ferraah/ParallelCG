@@ -35,90 +35,90 @@ strong_scalability="results/strong_scalability.txt"
 # Path to directory containing matrices and vectors
 path_to_dir="/project/home/p200301/tests"
 
-# echo "############# WEAK SCALABILITY  OVER ELEMENTS #############"
-# # Loop over different matrix sizes
-# for matrix_size in 5000 10000 20000 30000 40000 50000; do
-#     echo "========== Matrix Size: $matrix_size , MPI PROCESSES: ${processes[$matrix_size]} =========="
-#     echo "========== Matrix Size: $matrix_size , MPI PROCESSES: ${processes[$matrix_size]} ==========" >> "$weak_scalability_elems"
+echo "############# WEAK SCALABILITY  OVER ELEMENTS #############"
+# Loop over different matrix sizes
+for matrix_size in 5000 10000 20000 30000 40000 50000; do
+    echo "========== Matrix Size: $matrix_size , MPI PROCESSES: ${processes[$matrix_size]} =========="
+    echo "========== Matrix Size: $matrix_size , MPI PROCESSES: ${processes[$matrix_size]} ==========" >> "$weak_scalability_elems"
 
-#     matrix_file="$path_to_dir/matrix${matrix_size}.bin"
-#     vector_file="$path_to_dir/rhs${matrix_size}.bin"
+    matrix_file="$path_to_dir/matrix${matrix_size}.bin"
+    vector_file="$path_to_dir/rhs${matrix_size}.bin"
 
 
 
-#     num_procs="${processes[$matrix_size]}"
+    num_procs="${processes[$matrix_size]}"
 
-#     min_time=0
-#     echo "Accessing directory $path_to_dir for matrix of size $matrix_size"
+    min_time=0
+    echo "Accessing directory $path_to_dir for matrix of size $matrix_size"
     
-#     # Calculate number of nodes
+    # Calculate number of nodes
     
-#     # Execute program multiple times and record minimum time
-#     for ((iter=0; iter<$num_iter; iter++)); do
-#         g++ utils.cpp main.cpp distributed.cpp -I/ -lmpi -O3
+    # Execute program multiple times and record minimum time
+    for ((iter=0; iter<$num_iter; iter++)); do
+        g++ utils.cpp main.cpp distributed.cpp -I/ -lmpi -O3
 
-#         echo Executing "srun  -n $num_procs ./a.out $matrix_file $vector_file"
-#         time_output=$(srun -n $num_procs ./a.out $matrix_file $vector_file)
-#         if [ "$iter" -eq 0 ]; then
-#             min_time="$time_output"
-#         elif [ "$time_output" -lt "$min_time" ]; then
-#             min_time="$time_output"
-#         fi
-#     done
+        echo Executing "srun  -n $num_procs ./a.out $matrix_file $vector_file"
+        time_output=$(srun -n $num_procs ./a.out $matrix_file $vector_file)
+        if [ "$iter" -eq 0 ]; then
+            min_time="$time_output"
+        elif [ "$time_output" -lt "$min_time" ]; then
+            min_time="$time_output"
+        fi
+    done
 
-#     # Log minimum time for the matrix size
-#     echo "Time: $min_time ms" >> "$weak_scalability_elems"
-#     echo "Time: $min_time ms"
-# done
-# echo "##########################################"
-
-# 
-# declare -A processes_map_rows
-# processes_map_rows[5000]=2
-# processes_map_rows[10000]=4
-# processes_map_rows[20000]=8
-# processes_map_rows[30000]=12
-# processes_map_rows[40000]=16
+    # Log minimum time for the matrix size
+    echo "Time: $min_time ms" >> "$weak_scalability_elems"
+    echo "Time: $min_time ms"
+done
+echo "##########################################"
 
 
-
-
-# echo "############# WEAK SCALABILITY OVER ROWS #############"
-# # Loop over different matrix sizes
-# for matrix_size in 5000 10000 20000 30000 40000; do
-#     echo "========== Matrix Size: $matrix_size , GPU: ${processes_map_rows[$matrix_size]} =========="
-#     echo "========== Matrix Size: $matrix_size , GPU: ${processes_map_rows[$matrix_size]} ==========" >> "$weak_scalability"
-
-#     matrix_file="$path_to_dir/matrix${matrix_size}.bin"
-#     vector_file="$path_to_dir/rhs${matrix_size}.bin"
+declare -A processes_map_rows
+processes_map_rows[5000]=2
+processes_map_rows[10000]=4
+processes_map_rows[20000]=8
+processes_map_rows[30000]=12
+processes_map_rows[40000]=16
 
 
 
-#     num_procs="${processes_map_rows[$matrix_size]}"
 
-#     min_time=0
-#     echo "Accessing directory $path_to_dir for matrix of size $matrix_size"
+echo "############# WEAK SCALABILITY OVER ROWS #############"
+# Loop over different matrix sizes
+for matrix_size in 5000 10000 20000 30000 40000; do
+    echo "========== Matrix Size: $matrix_size , MPI PROCESSES: ${processes_map_rows[$matrix_size]} =========="
+    echo "========== Matrix Size: $matrix_size , MPI PROCESSES: ${processes_map_rows[$matrix_size]} ==========" >> "$weak_scalability"
+
+    matrix_file="$path_to_dir/matrix${matrix_size}.bin"
+    vector_file="$path_to_dir/rhs${matrix_size}.bin"
+
+
+
+    num_procs="${processes_map_rows[$matrix_size]}"
+
+    min_time=0
+    echo "Accessing directory $path_to_dir for matrix of size $matrix_size"
     
-#     # Calculate number of nodes
+    # Calculate number of nodes
     
-#     # Execute program multiple times and record minimum time
-#     for ((iter=0; iter<$num_iter; iter++)); do
-#            g++ utils.cpp main.cpp distributed.cpp -I/ -lmpi -O3
-#         
-#         echo Executing "srun  -n $num_procs ./a.out $matrix_file $vector_file $matrix_size"
-#         time_output=$(srun -N 4 -n $num_procs ./a.out $matrix_file $vector_file $matrix_size)
-#         if [ "$iter" -eq 0 ]; then
-#             min_time="$time_output"
-#         elif [ "$time_output" -lt "$min_time" ]; then
-#             min_time="$time_output"
-#         fi
-#     done
+    # Execute program multiple times and record minimum time
+    for ((iter=0; iter<$num_iter; iter++)); do
+           g++ utils.cpp main.cpp distributed.cpp -I/ -lmpi -O3
+        
+        echo Executing "srun  -n $num_procs ./a.out $matrix_file $vector_file $matrix_size"
+        time_output=$(srun -N 4 -n $num_procs ./a.out $matrix_file $vector_file $matrix_size)
+        if [ "$iter" -eq 0 ]; then
+            min_time="$time_output"
+        elif [ "$time_output" -lt "$min_time" ]; then
+            min_time="$time_output"
+        fi
+    done
 
-#     # Log minimum time for the matrix size
-#     echo "Time: $min_time ms" >> "$weak_scalability"
-#     echo "Time: $min_time ms"
-# done
-# echo "##########################################"
+    # Log minimum time for the matrix size
+    echo "Time: $min_time ms" >> "$weak_scalability"
+    echo "Time: $min_time ms"
+done
+echo "##########################################"
 
 echo "############# STRONG SCALABILITY ############"
 matrix_size=50000
