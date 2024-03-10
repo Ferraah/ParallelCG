@@ -26,6 +26,8 @@ make -j
 ```
 The executables are now ready in the `build/test` folder, and some of the speedups benchmarks in `build/benchmark/SpeedupTemplates`.
 
+Finally, to execute the compiled programs, use the usual ```srun``` commands.
+
 ## Usages examples
 Without Mpi:
 ```cpp     
