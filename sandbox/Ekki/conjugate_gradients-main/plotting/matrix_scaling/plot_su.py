@@ -9,7 +9,7 @@ def parabula(x, a):
 def plot_data(file_path, title):
 
     plt.rcParams['text.usetex'] = True
-    plt.rcParams.update({'font.size': 13.5})
+    plt.rcParams.update({'font.size': 18})
     plt.yscale('log')
     plt.xscale('log')
     # Load data from the text file using numpy
@@ -45,7 +45,9 @@ def plot_data(file_path, title):
     plt.xlabel('Matrix size')
     plt.ylabel('Walltime (s)')
     plt.title(title)
-    plt.legend()
+    # plt.legend(loc='upper center', bbox_to_anchor=(0.5, -0.3), fancybox=True, shadow=True, ncol=2, fontsize=12)
+    plt.legend(fontsize=12)
+    plt.tight_layout()
     plt.savefig(file_path+'V1'+'.png')
     plt.show()
 

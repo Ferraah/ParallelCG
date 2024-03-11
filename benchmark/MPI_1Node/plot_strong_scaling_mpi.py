@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 plt.rcParams['text.usetex'] = True
-plt.rcParams.update({'font.size': 14})
+plt.rcParams.update({'font.size': 18})
 
 processes = np.array([1, 2, 4, 8, 16, 32, 64, 128, 256])
 runtime = np.array([145.168, 72.118, 36.1497, 18.1116, 9.20592, 5.09505, 2.65923, 1.45578, 1.35151])
@@ -27,5 +27,6 @@ for i, proc in enumerate(efficiency):
     plt.annotate('%0.3f' % proc, xy=(processes[i], efficiency[i]), xytext=(7, 2), textcoords='offset points', color='green')
 ax2.set_ylim([0, 1.3])
 
+plt.tight_layout()
 plt.savefig('plot_strong_scaling_mpi.pdf', format='pdf')
 plt.show()

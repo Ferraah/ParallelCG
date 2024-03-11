@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 plt.rcParams['text.usetex'] = True
-plt.rcParams.update({'font.size': 14})
+plt.rcParams.update({'font.size': 18})
 
 processes = np.array([1, 2, 4, 6, 8, 10, 12, 14, 16])
 runtime_omp = np.array([37.2649, 18.9598, 9.95739, 8.88727, 8.48109, 8.71838, 10.8129, 11.981, 12.188])
@@ -39,5 +39,6 @@ for i, proc in enumerate(efficiency_omp_blas[:5]):
 ax2.set_ylim([0, 1.3])
 ax2.legend(loc='upper right')
 
+plt.tight_layout()
 plt.savefig('plot_strong_scaling_omp_blas.pdf', format='pdf')
 plt.show()
