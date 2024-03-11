@@ -46,7 +46,8 @@ runtime3 = np.array([
 avg = (runtime + runtime2 + runtime3)/3
 
 fig, ax = plt.subplots(figsize=(8, 6))
-ax.set_xscale('log', base=math.sqrt(2))
+ax.set_xscale('log') # base=math.sqrt(2)
+ax.set_yscale('log')
 ax.set_xticks(matrix_sizes)
 ax.set_xticklabels(['0.1', '0.5', '1', '5', '10', '20', '30', '40', '50'], rotation=45)
 
